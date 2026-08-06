@@ -90,5 +90,5 @@ testpaths = [
     "tests",
 ]
 pythonpath = [
-    "src"
+    "."
 ]
