@@ -1,7 +1,8 @@
-"""Dataset loading, indexing, scanning, validation, and PyTorch dataset modules."""
+"""Dataset loading, indexing, scanning, validation, augmentation, and PyTorch dataset modules."""
 
 from .scanner import DatasetPair, DatasetScanner
 from .sem_dataset import SEMDataset
+from .transforms import PairedTransforms, get_transforms
 from .validator import (
     DatasetValidationError,
     DatasetValidator,
@@ -16,5 +17,7 @@ __all__ = [
     "DatasetValidationError",
     "InvalidDtypeError",
     "InvalidShapeError",
+    "PairedTransforms",
     "SEMDataset",
+    "get_transforms",
 ]

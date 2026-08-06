@@ -6,7 +6,7 @@ formatting, and sample dictionary output.
 """
 
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -24,6 +24,7 @@ class SEMDataset(Dataset):
         root_dir: Union[str, Path],
         split: str = "train",
         clip_range: Tuple[float, float] = (0.0, 1.0),
+        transform: Optional[Callable] = None,
         validate: bool = True,
     ) -> None:
         """Initialize SEMDataset.
@@ -32,12 +33,14 @@ class SEMDataset(Dataset):
             root_dir: Path to root dataset directory.
             split: Dataset split ('train' or 'test').
             clip_range: Pixel intensity clipping range (min, max).
+            transform: Optional augmentation transform callable.
             validate: If True, executes header validation on scanned pairs.
         """
         super().__init__()
         self.root_dir = Path(root_dir).resolve()
         self.split = split
         self.clip_range = clip_range
+        self.transform = transform
 
         self.scanner = DatasetScanner(self.root_dir)
         self.pairs = self.scanner.scan_split(split)
@@ -96,6 +99,9 @@ class SEMDataset(Dataset):
         target_tensor: Optional[torch.Tensor] = None
         if pair.target_path is not None:
             target_tensor = self._process_array(pair.target_path)
+
+        if self.transform is not None:
+            input_tensor, target_tensor = self.transform(input_tensor, target_tensor)
 
         return {
             "input": input_tensor,
