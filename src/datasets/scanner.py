@@ -82,7 +82,7 @@ class DatasetScanner:
         files.sort(key=lambda p: p.name)
         return files
 
-    def scan_split(self, split: str = "train") -> List[DatasetPair]:
+    def scan_split(self, split: str = "train") -> List[DatasetPair]:  # noqa: C901
         """Scan a dataset split ('train' or 'test') and build paired file index.
 
         Args:
@@ -95,9 +95,18 @@ class DatasetScanner:
             ValueError: If split is unsupported or paired files are mismatched.
             FileNotFoundError: If split directory does not exist.
         """
+        # Resolve split directory, searching for nested split names if needed
         split_dir = self.root_dir / split
         if not split_dir.exists():
-            raise FileNotFoundError(f"Split directory does not exist: {split_dir}")
+            # Check for alternative directory naming
+            if split == "train" and (self.root_dir / "train" / "train").exists():
+                split_dir = self.root_dir / "train" / "train"
+            elif split == "test" and (self.root_dir / "Test_NoisyLR").exists():
+                split_dir = self.root_dir / "Test_NoisyLR"
+            else:
+                raise FileNotFoundError(f"Split directory does not exist: {split_dir}")
+        elif split == "train" and (split_dir / "train").exists():
+            split_dir = split_dir / "train"
 
         if split == "train":
             gt_dir = split_dir / "GT"
