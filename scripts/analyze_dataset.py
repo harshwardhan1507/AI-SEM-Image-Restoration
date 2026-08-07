@@ -14,7 +14,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -163,11 +163,29 @@ class SEMDatasetAnalyzer:
         self.logger.info(f"Test NoisyLR Directory: {self.test_noisy_dir}")
 
         if self.train_gt_dir:
-            self.train_gt_files = sorted([f for f in self.train_gt_dir.glob("*.npy") if not f.name.startswith("._") and "__MACOSX" not in f.parts])
+            self.train_gt_files = sorted(
+                [
+                    f
+                    for f in self.train_gt_dir.glob("*.npy")
+                    if not f.name.startswith("._") and "__MACOSX" not in f.parts
+                ]
+            )
         if self.train_noisy_dir:
-            self.train_noisy_files = sorted([f for f in self.train_noisy_dir.glob("*.npy") if not f.name.startswith("._") and "__MACOSX" not in f.parts])
+            self.train_noisy_files = sorted(
+                [
+                    f
+                    for f in self.train_noisy_dir.glob("*.npy")
+                    if not f.name.startswith("._") and "__MACOSX" not in f.parts
+                ]
+            )
         if self.test_noisy_dir:
-            self.test_noisy_files = sorted([f for f in self.test_noisy_dir.glob("*.npy") if not f.name.startswith("._") and "__MACOSX" not in f.parts])
+            self.test_noisy_files = sorted(
+                [
+                    f
+                    for f in self.test_noisy_dir.glob("*.npy")
+                    if not f.name.startswith("._") and "__MACOSX" not in f.parts
+                ]
+            )
 
         structure_report["train_gt_count"] = len(self.train_gt_files)
         structure_report["train_noisy_count"] = len(self.train_noisy_files)
@@ -186,7 +204,9 @@ class SEMDatasetAnalyzer:
         gt_map = {f.name: f for f in self.train_gt_files}
         noisy_map = {f.name: f for f in self.train_noisy_files}
 
-        matched_names = sorted(list(set(gt_map.keys()).intersection(set(noisy_map.keys()))))
+        matched_names = sorted(
+            list(set(gt_map.keys()).intersection(set(noisy_map.keys())))
+        )
         gt_only = sorted(list(set(gt_map.keys()) - set(noisy_map.keys())))
         noisy_only = sorted(list(set(noisy_map.keys()) - set(gt_map.keys())))
 
@@ -208,7 +228,9 @@ class SEMDatasetAnalyzer:
                 self.logger.warning(f"Corrupt GT file {gt_path}: {e}")
                 corrupted_files.append(str(gt_path))
 
-        for n_path in tqdm(self.train_noisy_files, desc="Checking Train NoisyLR integrity"):
+        for n_path in tqdm(
+            self.train_noisy_files, desc="Checking Train NoisyLR integrity"
+        ):
             try:
                 arr = np.load(n_path)
                 shapes_noisy[arr.shape] = shapes_noisy.get(arr.shape, 0) + 1
@@ -220,7 +242,9 @@ class SEMDatasetAnalyzer:
                 corrupted_files.append(str(n_path))
 
         test_shapes: Dict[Tuple[int, ...], int] = {}
-        for t_path in tqdm(self.test_noisy_files, desc="Checking Test NoisyLR integrity"):
+        for t_path in tqdm(
+            self.test_noisy_files, desc="Checking Test NoisyLR integrity"
+        ):
             try:
                 arr = np.load(t_path)
                 test_shapes[arr.shape] = test_shapes.get(arr.shape, 0) + 1
@@ -252,7 +276,9 @@ class SEMDatasetAnalyzer:
         Returns:
             Dict[str, Any]: Aggregate pixel statistics.
         """
-        self.logger.info(f"Computing pixel statistics (sampling up to {sample_size} arrays per split)...")
+        self.logger.info(
+            f"Computing pixel statistics (sampling up to {sample_size} arrays per split)..."
+        )
 
         def calc_stats(file_list: List[Path]) -> Dict[str, float]:
             if not file_list:
@@ -268,7 +294,11 @@ class SEMDatasetAnalyzer:
                 means.append(float(np.mean(arr)))
                 stds.append(float(np.std(arr)))
                 # Sample 1000 pixels for fast global distribution
-                all_pixels.extend(np.random.choice(arr.ravel(), size=min(1000, arr.size), replace=False))
+                all_pixels.extend(
+                    np.random.choice(
+                        arr.ravel(), size=min(1000, arr.size), replace=False
+                    )
+                )
 
             all_pixels_arr = np.array(all_pixels, dtype=np.float32)
 
@@ -294,7 +324,10 @@ class SEMDatasetAnalyzer:
         }
 
     def generate_plots_and_visualizations(
-        self, pixel_stats: Dict[str, Any], matched_names: List[str], num_samples: int = 6
+        self,
+        pixel_stats: Dict[str, Any],
+        matched_names: List[str],
+        num_samples: int = 6,
     ) -> List[str]:
         """Generate analysis figures and save under output_img_dir.
 
@@ -339,7 +372,9 @@ class SEMDatasetAnalyzer:
                 density=True,
             )
 
-        ax.set_title("Pixel Intensity Distribution Comparison", fontsize=14, fontweight="bold")
+        ax.set_title(
+            "Pixel Intensity Distribution Comparison", fontsize=14, fontweight="bold"
+        )
         ax.set_xlabel("Pixel Value (Intensity)", fontsize=12)
         ax.set_ylabel("Density", fontsize=12)
         ax.legend(fontsize=11)
@@ -355,9 +390,13 @@ class SEMDatasetAnalyzer:
         # 2. Side-by-side Image Pair Comparison Plot
         if matched_names and self.train_gt_dir and self.train_noisy_dir:
             sample_indices = np.random.choice(
-                len(matched_names), size=min(num_samples, len(matched_names)), replace=False
+                len(matched_names),
+                size=min(num_samples, len(matched_names)),
+                replace=False,
             )
-            fig, axes = plt.subplots(len(sample_indices), 3, figsize=(12, 4 * len(sample_indices)))
+            fig, axes = plt.subplots(
+                len(sample_indices), 3, figsize=(12, 4 * len(sample_indices))
+            )
             if len(sample_indices) == 1:
                 axes = np.expand_dims(axes, axis=0)
 
@@ -369,7 +408,9 @@ class SEMDatasetAnalyzer:
                 # Up-sample NoisyLR visually or show difference
                 # Rescale GT or NoisyLR to compare residual
                 axes[idx, 0].imshow(noisy_img, cmap="gray")
-                axes[idx, 0].set_title(f"NoisyLR (Input): {name}\nShape: {noisy_img.shape}")
+                axes[idx, 0].set_title(
+                    f"NoisyLR (Input): {name}\nShape: {noisy_img.shape}"
+                )
                 axes[idx, 0].axis("off")
 
                 axes[idx, 1].imshow(gt_img, cmap="gray")
@@ -378,13 +419,20 @@ class SEMDatasetAnalyzer:
 
                 # Interpolate noisy for visual residual preview
                 noisy_resized = np.repeat(np.repeat(noisy_img, 2, axis=0), 2, axis=1)
-                diff = np.abs(gt_img - noisy_resized[: gt_img.shape[0], : gt_img.shape[1]])
+                diff = np.abs(
+                    gt_img - noisy_resized[: gt_img.shape[0], : gt_img.shape[1]]
+                )
                 im = axes[idx, 2].imshow(diff, cmap="magma")
                 axes[idx, 2].set_title("Absolute Difference Map")
                 axes[idx, 2].axis("off")
                 fig.colorbar(im, ax=axes[idx, 2], fraction=0.046, pad=0.04)
 
-            plt.suptitle("SEM Image Pairs: NoisyLR vs Ground Truth", fontsize=16, fontweight="bold", y=1.002)
+            plt.suptitle(
+                "SEM Image Pairs: NoisyLR vs Ground Truth",
+                fontsize=16,
+                fontweight="bold",
+                y=1.002,
+            )
             plt.tight_layout()
             comp_path = self.output_img_dir / "sample_image_pairs_comparison.png"
             plt.savefig(comp_path, dpi=300)
@@ -409,22 +457,43 @@ class SEMDatasetAnalyzer:
             pixel_stats: Computed pixel intensity statistics.
             saved_plots: List of saved visualization image paths.
         """
-        self.logger.info(f"Writing dataset characterization report to: {self.output_doc_path}")
+        self.logger.info(
+            f"Writing dataset characterization report to: {self.output_doc_path}"
+        )
 
         # Compute dataset memory sizes
-        train_gt_size_mb = sum(f.stat().st_size for f in self.train_gt_files) / (1024 * 1024)
-        train_noisy_size_mb = sum(f.stat().st_size for f in self.train_noisy_files) / (1024 * 1024)
-        test_noisy_size_mb = sum(f.stat().st_size for f in self.test_noisy_files) / (1024 * 1024)
+        train_gt_size_mb = sum(f.stat().st_size for f in self.train_gt_files) / (
+            1024 * 1024
+        )
+        train_noisy_size_mb = sum(f.stat().st_size for f in self.train_noisy_files) / (
+            1024 * 1024
+        )
+        test_noisy_size_mb = sum(f.stat().st_size for f in self.test_noisy_files) / (
+            1024 * 1024
+        )
         total_size_mb = train_gt_size_mb + train_noisy_size_mb + test_noisy_size_mb
 
-        gt_shape_str = ", ".join([f"{shape}: {count}" for shape, count in pair_report["shapes_gt"].items()])
+        gt_shape_str = ", ".join(
+            [f"{shape}: {count}" for shape, count in pair_report["shapes_gt"].items()]
+        )
         noisy_shape_str = ", ".join(
-            [f"{shape}: {count}" for shape, count in pair_report["shapes_noisy"].items()]
+            [
+                f"{shape}: {count}"
+                for shape, count in pair_report["shapes_noisy"].items()
+            ]
         )
         test_shape_str = ", ".join(
-            [f"{shape}: {count}" for shape, count in pair_report["shapes_test_noisy"].items()]
+            [
+                f"{shape}: {count}"
+                for shape, count in pair_report["shapes_test_noisy"].items()
+            ]
         )
-        dtype_str = ", ".join([f"`{dtype}` ({count} arrays)" for dtype, count in pair_report["dtypes"].items()])
+        dtype_str = ", ".join(
+            [
+                f"`{dtype}` ({count} arrays)"
+                for dtype, count in pair_report["dtypes"].items()
+            ]
+        )
 
         gt_st = pixel_stats.get("gt", {})
         nt_st = pixel_stats.get("noisy_train", {})
@@ -577,7 +646,9 @@ Based on empirical pixel value profiling and visual residual inspection:
         pair_report = self.verify_pairs_and_integrity()
         pixel_stats = self.compute_pixel_statistics()
         saved_plots = self.generate_plots_and_visualizations(
-            pixel_stats, pair_report["matched_names"], num_samples=self.stats.get("num_samples", 4)
+            pixel_stats,
+            pair_report["matched_names"],
+            num_samples=self.stats.get("num_samples", 4),
         )
         self.generate_report(struct_report, pair_report, pixel_stats, saved_plots)
         self.logger.info("Dataset analysis complete!")

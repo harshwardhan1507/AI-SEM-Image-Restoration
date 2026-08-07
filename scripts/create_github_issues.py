@@ -2,7 +2,7 @@
 
 import json
 import subprocess
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 REPO = "harshwardhan1507/AI-SEM-Image-Restoration"
 
@@ -352,7 +352,11 @@ Dependencies: #15, #16""",
 
 
 def main() -> None:
-    res = subprocess.run(["gh", "issue", "list", "--state", "all", "--json", "title"], capture_output=True, text=True)
+    res = subprocess.run(
+        ["gh", "issue", "list", "--state", "all", "--json", "title"],
+        capture_output=True,
+        text=True,
+    )
     existing_titles = set()
     if res.returncode == 0 and res.stdout:
         existing_titles = {i["title"] for i in json.loads(res.stdout)}
@@ -360,10 +364,15 @@ def main() -> None:
     for item in ISSUES:
         if item["title"] not in existing_titles:
             cmd = [
-                "gh", "issue", "create",
-                "--title", item["title"],
-                "--body", item["body"],
-                "--milestone", item["milestone"],
+                "gh",
+                "issue",
+                "create",
+                "--title",
+                item["title"],
+                "--body",
+                item["body"],
+                "--milestone",
+                item["milestone"],
             ]
             for lbl in item["labels"]:
                 cmd.extend(["--label", lbl])
