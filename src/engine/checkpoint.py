@@ -59,18 +59,18 @@ class CheckpointManager:
         """
         new_best = False
         if metric is not None and metric > self.best_metric:
-            self.best_metric = float(metric)
+            self.best_metric = metric
             new_best = True
 
         if is_best:
             new_best = True
 
         state: Dict[str, Any] = {
-            "epoch": int(epoch),
+            "epoch": epoch,
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "scheduler": scheduler.state_dict() if scheduler is not None else None,
-            "best_metric": float(self.best_metric),
+            "best_metric": self.best_metric,
         }
 
         save_filename = (

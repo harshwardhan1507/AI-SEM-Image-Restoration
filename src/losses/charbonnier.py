@@ -29,7 +29,7 @@ class CharbonnierLoss(nn.Module):
                 f"Unsupported reduction '{reduction}'. Expected 'mean', 'sum', or 'none'."
             )
 
-        self.eps = float(eps)
+        self.eps = eps
         self.reduction = reduction
 
     def forward(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
