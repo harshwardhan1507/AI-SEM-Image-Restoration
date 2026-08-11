@@ -50,9 +50,13 @@ def build_loss(cfg: Any) -> nn.Module:
         return PSNRLoss(
             data_range=float(data_range), eps=float(eps), reduction=reduction
         )
+    elif loss_type_lower in ("l1", "l1loss"):
+        return nn.L1Loss(reduction=reduction)
+    elif loss_type_lower in ("mse", "mseloss"):
+        return nn.MSELoss(reduction=reduction)
     else:
         raise ValueError(
-            f"Unsupported loss type '{loss_type}'. Supported loss types are 'charbonnier' and 'psnr'."
+            f"Unsupported loss type '{loss_type}'. Supported loss types are 'charbonnier', 'psnr', 'l1', and 'mse'."
         )
 
 

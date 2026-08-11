@@ -240,6 +240,16 @@ def test_build_loss_psnr() -> None:
     assert loss.eps == 1e-6
 
 
+def test_build_loss_l1_and_mse() -> None:
+    """Test building L1Loss and MSELoss from dictionary or string."""
+    loss_l1 = build_loss("l1")
+    assert isinstance(loss_l1, torch.nn.L1Loss)
+
+    loss_mse = build_loss({"loss": {"name": "MSELoss", "reduction": "sum"}})
+    assert isinstance(loss_mse, torch.nn.MSELoss)
+    assert loss_mse.reduction == "sum"
+
+
 def test_build_loss_unsupported() -> None:
     """Test build_loss raises ValueError for unsupported loss types."""
     with pytest.raises(ValueError, match="Unsupported loss type"):
@@ -247,3 +257,4 @@ def test_build_loss_unsupported() -> None:
 
     with pytest.raises(ValueError, match="Loss type must be a string"):
         build_loss({"name": 12345})
+
