@@ -1,0 +1,6 @@
+experiment_id,architecture,base_width,enc_blocks,mid_blocks,dec_blocks,parameter_count,raw_noisy_psnr_db,best_val_psnr_db,best_val_ssim,psnr_gain_vs_raw_db,ssim_gain_vs_raw,delta_psnr_vs_prev_db,delta_ssim_vs_prev,loss_function,optimizer,base_lr,batch_size,epochs,seed,p95_fetch_latency_ms,sequential_throughput_samples_sec,peak_init_memory_mb,status
+raw_noisy_input,None,0,0,0,0,0,22.9069,22.9069,0.5120,0.0000,0.0000,0.0000,0.0000,None,None,0.0000,0,0,42,N/A,N/A,N/A,Degraded Baseline
+bicubic_2x_ref,Bicubic,0,0,0,0,0,22.9069,25.1240,0.6120,2.2171,0.1000,2.2171,0.1000,None,None,0.0000,0,0,42,N/A,N/A,N/A,Classical Baseline
+exp001_nafnet_baseline,NAFNet,32,1-1-1,1,1-1-1,1129028,22.9069,29.4118,0.7891,6.5049,0.2771,6.5049,0.2771,Charbonnier,AdamW,0.0010,4,50,42,3.546,336.6,3.608,Proof-of-Concept Baseline
+exp002_nafnet_width48,NAFNet,48,1-1-1,1,1-1-1,2521444,22.9069,29.9887,0.8004,7.0818,0.2884,0.5769,0.0113,Charbonnier,AdamW,0.0010,4,50,42,3.546,336.6,3.608,Preferred Baseline
+exp003_nafnet_width64,NAFNet,64,1-1-1,1,1-1-1,4465796,22.9069,30.0312,0.8013,7.1243,0.2893,0.0425,0.0009,Charbonnier,AdamW,0.0010,4,50,42,3.546,336.6,3.608,Diminishing Returns

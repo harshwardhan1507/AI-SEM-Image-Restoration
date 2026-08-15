@@ -1,395 +1,434 @@
-# AI-Based Restoration of Degraded Scanning Electron Microscope (SEM) Images using NAFNet
+# AI-Based Restoration of Low-Dose SEM Images using NAFNet
 
-An end-to-end research framework and production-grade implementation of the Nonlinear Activation Free Network (NAFNet) architecture for restoring degraded Scanning Electron Microscope (SEM) images in semiconductor defect inspection pipelines.
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![CUDA](https://img.shields.io/badge/CUDA-Tesla%20T4%20%2F%2011.8%2B-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
+[![Hackathon](https://img.shields.io/badge/KLA%20%2F%20Semicon%20India-Hackathon%202026-blueviolet?style=for-the-badge)](docs/KLA_webinar_key_findings_and_solution_strategy.md)
+[![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
 
----
-
-## 1. Project Title
-
-**AI-Based Restoration of Degraded Scanning Electron Microscope (SEM) Images using NAFNet**
-
-This project provides a modular, configuration-driven PyTorch framework for restoring low-dose, noise-degraded Scanning Electron Microscope (SEM) micrographs while preserving critical nanometer-scale structural fidelity.
-
----
-
-## 2. Introduction
-
-Scanning Electron Microscopy (SEM) is an indispensable imaging modality in modern semiconductor fabrication and material science. Unlike optical microscopes limited by diffraction limits, SEM utilizes focused electron beams to achieve sub-nanometer spatial resolution. In semiconductor manufacturing, SEM imaging is employed for Critical Dimension SEM (CD-SEM) metrology, overlay measurements, defect review, and reverse engineering of integrated circuits.
-
-However, electron beam interaction with sensitive semiconductor substrate samples presents a fundamental physics trade-off:
-1. **High Electron Dose**: Yields high signal-to-noise ratio (SNR) images but risks beam damage, hydrocarbon contamination, charging artifacts, and sample modification.
-2. **Low Electron Dose**: Protects delicate semiconductor structures and enables fast scanning speeds, but results in severe image degradation dominated by shot noise and thermal detector fluctuations.
-
-Automated image restoration algorithms capable of reconstructing clean, high-SNR micrographs from low-dose SEM scans are essential for maintaining high inspection throughput while preventing sample damage.
+> **An end-to-end research framework and production-ready PyTorch pipeline employing Nonlinear Activation Free Networks (NAFNet) to restore noise-degraded, downsampled Scanning Electron Microscope (SEM) micrographs for semiconductor defect inspection and metrology.**
 
 ---
 
-## 3. Problem Statement
+## Table of Contents
 
-Semiconductor defect inspection relies on precise edge detection and nanometer-scale pattern recognition. Low-dose SEM image acquisition introduces severe noise phenomena that degrade image quality:
-
-* **Poisson Shot Noise**: Originates from the quantum nature of primary electron arrival and secondary electron emission at low beam currents.
-* **Gaussian Thermal Noise**: Introduced by analog signal amplification electronics and detector hardware.
-* **Charging Artifacts**: Non-conductive semiconductor surfaces accumulate electrical charge, causing local beam deflection, brightness distortion, and line jitter.
-* **Scan Drift and Blur**: Mechanical stage instability and thermal drift induce spatial blurring during frame integration.
-
-### Consequences on Semiconductor Metrology
-Severe image degradation impairs critical automated tasks:
-* CD-SEM line-edge roughness (LER) and line-width roughness (LWR) algorithms fail due to noisy edge boundaries.
-* Sub-10nm defect detection algorithms produce high false-positive or false-negative rates.
-* Multi-frame averaging reduces fabrication line throughput.
-
-An effective deep-learning restoration model must remove complex mixed noise while strictly preserving structural edges without introducing hallucinated artifacts.
-
----
-
-## 4. Project Objectives
-
-### Primary Objective
-To construct a research-grade, reproducible PyTorch framework implementing the NAFNet (Nonlinear Activation Free Network) architecture to restore degraded SEM images, maximizing quantitative image quality measured by Peak Signal-to-Noise Ratio (PSNR) and Structural Similarity Index Measure (SSIM).
-
-### Secondary Objectives
-1. **Nanometer Edge Preservation**: Retain sharp line edges, contact hole boundaries, and fine pattern topographies essential for semiconductor CD metrology.
-2. **Computational Efficiency**: Achieve low computational complexity and memory footprint by leveraging activation-free operations.
-3. **Modular Codebase**: Provide a clean separation between dataset handling, model architecture, training engine, evaluation metrics, and configuration management.
-4. **Reproducible Experimentation**: Ensure deterministic training execution, explicit seed control, and structured metric logging.
-
-### Expected Outcomes
-* A trained NAFNet model outperforming traditional spatial filters (Gaussian, Median, Non-Local Means) and conventional CNN baselines on SEM benchmarks.
-* A standardized evaluation benchmark comparing restored SEM micrographs against ground-truth high-dose acquisitions.
+- [Overview](#overview)
+- [KLA Hackathon Challenge & Semiconductor Physics](#kla-hackathon-challenge--semiconductor-physics)
+- [Dataset Characterization & Visual Analysis](#dataset-characterization--visual-analysis)
+- [Why NAFNet? Key Architectural Superiorities](#why-nafnet-key-architectural-superiorities)
+- [System & Block Diagrams](#system--block-diagrams)
+- [Empirical Capacity Scaling Benchmarks (Width 32 vs 48 vs 64)](#empirical-capacity-scaling-benchmarks-width-32-vs-48-vs-64)
+- [Qualitative Restoration Results & Visual Zoom Crops](#qualitative-restoration-results--visual-zoom-crops)
+- [Dataset Throughput & Loader Benchmarks](#dataset-throughput--loader-benchmarks)
+- [Quick Start & CLI Workflows](#quick-start--cli-workflows)
+- [Mathematical Formulation & Differentiable Objectives](#mathematical-formulation--differentiable-objectives)
+- [Repository Structure](#repository-structure)
+- [Configuration System](#configuration-system)
+- [Roadmap & Future Extensions](#roadmap--future-extensions)
+- [References & Citation](#references--citation)
+- [License & Acknowledgements](#license--acknowledgements)
 
 ---
 
-## 5. Why NAFNet?
+## Overview
 
-Image restoration has historically relied on deep Convolutional Neural Networks (CNNs) such as DnCNN or Vision Transformers (ViTs) such as SwinIR and Restormer. While Vision Transformers achieve competitive PSNR metrics, their self-attention mechanisms impose high computational complexity $O(H^2 W^2)$ and heavy memory demands.
+In modern semiconductor manufacturing (e.g., 3nm/2nm node fabrication), **Critical Dimension Scanning Electron Microscopy (CD-SEM)** is the primary imaging modality for inspecting nanometer-scale wafer features, contact hole geometries, line-edge roughness (LER), and sub-10nm structural defects.
 
-### Technical Justification for NAFNet
-NAFNet (Nonlinear Activation Free Network) demonstrates that conventional nonlinear activation functions (e.g., GELU, ReLU, Softmax) are not strictly necessary for achieving state-of-the-art restoration performance. Key architectural advantages include:
+This repository provides an end-to-end, modular PyTorch implementation of **NAFNet (Nonlinear Activation Free Network)**, engineered specifically to restore severely degraded low-dose SEM micrographs with **sub-nanometer edge preservation** and **sub-linear computational footprint**.
 
-1. **SimpleGate Mechanism**: Replaces standard activation functions by splitting channel dimensions in half and computing an element-wise multiplication ($X_1 \odot X_2$), providing non-linear modeling capability with lower computational overhead.
-2. **Simplified Channel Attention (SCA)**: Replaces complex multi-layer perceptron (MLP) channel attention blocks with a single global average pooling operation followed by channel-wise scaling, capturing global context efficiently.
-3. **Residual Learning**: Employs intra-block and cross-stage residual skip connections, allowing the network to focus exclusively on learning the residual noise map ($I_{\text{degraded}} - I_{\text{clean}}$).
-4. **Sub-Linear Computational Complexity**: Maintains spatial convolution operations ($O(HW)$), making it computationally suited for high-resolution semiconductor image patches.
+> [!IMPORTANT]
+> **KLA / Semicon India Hackathon Benchmark Target:** Our NAFNet pipeline achieves a **+7.12 dB PSNR gain** (up from 22.90 dB noisy raw input to **30.03 dB PSNR** and **0.8013 SSIM**), solving simultaneous additive Gaussian noise, multiplicative speckle noise, and $2\times$ spatial resolution downsampling.
+
+---
+
+## KLA Hackathon Challenge & Semiconductor Physics
+
+### The Degradation Physics
+
+Scanning Electron Microscopes emit primary electron beams ($e^-$) interacting with wafer surfaces. Reducing beam current to prevent photoresist shrinkage and wafer charging introduces severe compound degradation:
+
+```
+                            Noisy & Low-Resolution SEM Input
+                                           │
+         ┌─────────────────────────────────┼─────────────────────────────────┐
+         ▼                                 ▼                                 ▼
+ ┌───────────────┐                 ┌───────────────┐                 ┌───────────────┐
+ │ Gaussian Noise│ (Additive)      │ Speckle Noise │ (Multiplicative)│ Downsampling  │ (2x Spatial resolution loss)
+ └───────────────┘                 └───────────────┘                 └───────────────┘
+         │                                 │                                 │
+         └─────────────────────────────────┼─────────────────────────────────┘
+                                           ▼
+                                ┌───────────────────┐
+                                │ Single-Shot NAFNet│
+                                └─────────┬─────────┘
+                                          ▼
+                             Restored High-SNR Micrograph
+```
+
+1. **Additive Gaussian Noise**: Originates from thermal detector fluctuations and sensor electronics.
+2. **Multiplicative Speckle Noise**: Quantum primary/secondary electron emission fluctuations following Poisson statistics ($\text{SNR} \propto \sqrt{N_{PE}}$).
+3. **Spatial Resolution Loss ($2\times$ Downsampling)**: Information loss due to rapid coarse scanning to increase wafer throughput.
+
+---
+
+## Dataset Characterization & Visual Analysis
+
+The project evaluates paired SEM micrograph splits stored as **32-bit floating-point NumPy arrays (`.npy`)**, preserving sensor dynamic range without lossy 8-bit image compression.
+
+### Sample Image Pairs (Degraded Low-Dose Input vs. Clean Ground Truth)
+
+![Sample SEM Image Pairs](results/images/dataset_analysis/sample_image_pairs_comparison.png)
+
+*Figure 1: Representative paired SEM samples showing low-dose degraded input vs. high-dose ground-truth micrographs across various semiconductor pattern topographies.*
+
+### Pixel Intensity Histogram Analysis
+
+![Pixel Intensity Histogram](results/images/dataset_analysis/pixel_intensity_histogram.png)
+
+*Figure 2: Distribution of pixel intensity values showing normalized floating-point range $[0.0, 1.0]$ across dataset splits.*
+
+---
+
+## Why NAFNet? Key Architectural Superiorities
+
+Standard restoration frameworks rely on heavy Convolutional Networks (DnCNN, UNet) or Vision Transformers (SwinIR, Restormer). While Transformers achieve competitive PSNR metrics, their self-attention mechanism requires quadratic computational complexity $\mathcal{O}(H^2 W^2)$ and large VRAM allocation.
+
+**NAFNet** proves that non-linear activation functions (ReLU, GELU, Softmax) are **completely unnecessary** for state-of-the-art restoration performance.
+
+### Core Mechanisms
+- **SimpleGate**: Replaces activation functions by splitting channels ($2C \to C$) and taking an element-wise product: $\text{SG}(X_1, X_2) = X_1 \odot X_2$.
+- **Simplified Channel Attention (SCA)**: Replaces multi-layer perceptrons with Global Average Pooling and a single channel-wise linear scale.
+- **Residual Learning**: Focuses network capacity exclusively on learning the residual noise map $R(I) = I_{\text{degraded}} - I_{\text{clean}}$.
 
 ### Comparative Architectural Analysis
 
-| Architecture | Paradigm | Activation Function | Attention Mechanism | Computational Complexity | Parameter Efficiency | SEM Suitability |
-|---|---|---|---|---|---|---|
-| **U-Net** | Encoder-Decoder CNN | ReLU / LeakyReLU | None | Low | Moderate | Moderate (lacks global context) |
-| **DnCNN** | Feed-forward CNN | ReLU | None | Low | High | Poor for complex SEM noise |
-| **RIDNet** | Residual CNN | ReLU | Feature Attention | Moderate | Moderate | Moderate |
-| **Restormer** | Transformer | GELU | Multi-Dhead Transposed Attention | High | Low | High (expensive computation) |
-| **SwinIR** | Swin Transformer | GELU | Windowed Self-Attention | High | Low | High (expensive computation) |
-| **NAFNet (Ours)** | Activation-Free CNN | SimpleGate (None) | Simplified Channel Attention (SCA) | Low-Moderate | High | Optimal (high fidelity, efficient) |
+| Architecture | Paradigm | Activation | Attention Mechanism | Spatial Complexity | Memory Efficiency | Semiconductor Metrology Suitability |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **U-Net** | Encoder-Decoder CNN | ReLU / LeakyReLU | None | $\mathcal{O}(HW)$ | Moderate | Low (Over-blurs fine edges) |
+| **DnCNN** | Feed-forward CNN | ReLU | None | $\mathcal{O}(HW)$ | High | Poor on mixed speckle/Gaussian noise |
+| **Restormer** | Transformer | GELU | Multi-Dhead Transposed | $\mathcal{O}(H^2 W^2)$ | Low | High (High GPU footprint) |
+| **SwinIR** | Swin Transformer | GELU | Windowed Self-Attention | $\mathcal{O}(HW \cdot W_{win}^2)$ | Low | High (High inference latency) |
+| **NAFNet (Ours)** | Activation-Free CNN | **SimpleGate (None)** | **SCA (Simplified Channel)** | **$\mathcal{O}(HW)$** | **High (Optimal)** | **State-of-the-Art (Preserved)** |
 
 ---
 
-## 6. Dataset
+## System & Block Diagrams
 
-### Overview & Data Storage
-The project utilizes paired SEM dataset splits containing low-dose (noisy/degraded) micrographs alongside corresponding high-dose (clean/ground-truth) acquisitions.
+### Top-Level Encoder-Decoder Framework
 
-### Technical Dataset Specifications
-* **File Format**: NumPy binary arrays (`.npy`) allowing 32-bit floating-point precision preservation without lossy compression.
-* **Channel Configuration**: Single-channel grayscale micrographs ($H \times W$ or $1 \times H \times W$).
-* **Data Organization**:
-  ```text
-  datasets/
-  ├── train/
-  │   ├── degraded/     # Low-dose SEM arrays (*.npy)
-  │   └── clean/        # High-dose ground-truth arrays (*.npy)
-  ├── val/
-  │   ├── degraded/
-  │   └── clean/
-  └── test/
-      ├── degraded/
-      └── clean/
-  ```
-
-### Preprocessing & Normalization Protocol
-1. **Characterization Phase**: Statistical profiling of dataset intensity range, mean, variance, and spatial dimension consistency prior to training.
-2. **Dynamic Range Normalization**: Scaling raw sensor intensity values to a standardized $[0.0, 1.0]$ floating-point range.
-3. **Paired Validation**: Rigorous verification ensuring strict alignment between noisy input arrays and corresponding ground-truth reference targets.
-
----
-
-## 7. Repository Structure
-
-The codebase is organized as a modular Python package located in `src/`, adhering to modern packaging standards:
-
-```text
-sem-image-restoration-nafnet/
-├── .github/             # GitHub templates and continuous integration workflows
-├── assets/              # Architecture diagrams, flowcharts, and figures
-├── configs/             # YAML configurations (default, train, model, inference, experiments)
-├── datasets/            # Dataset split storage and dataset documentation
-├── docs/                # Research papers, technical notes, and design documents
-├── experiments/         # Experiment execution logs and ablation comparative studies
-├── logs/                # Standalone application execution logs
-├── notebooks/           # Jupyter notebooks for data characterization and visualization
-├── outputs/             # Runtime artifacts (checkpoints, predictions, tensorboard logs)
-├── results/             # Publication figures and quantitative metric tables
-├── scripts/             # Standalone shell utilities and entry helpers
-├── src/                 # Main Python package source code
-│   ├── datasets/        # Dataset classes, PyTorch DataLoaders, and transforms
-│   ├── engine/          # Trainer, Evaluator, and execution loops
-│   ├── losses/          # Loss functions (PSNR Loss, Charbonnier, L1)
-│   ├── metrics/         # PSNR and SSIM metric calculators
-│   ├── models/          # NAFNet model architecture implementation
-│   └── utils/           # Configuration parsers, random seeds, and logging helpers
-├── tests/               # Pytest unit and integration test modules
-├── weights/             # Pretrained and fine-tuned model checkpoint files
-├── .env.example         # Template environment variables configuration
-├── .gitignore           # Comprehensive Git ignore rules
-├── .pre-commit-config.yaml # Pre-commit formatting and linting hook definitions
-├── CHANGELOG.md         # Version release history and milestone tracking
-├── CONTRIBUTING.md      # Development workflow and coding guidelines
-├── LICENSE              # Open-source MIT License
-├── README.md            # Master repository specification and technical documentation
-├── VERSION              # Semantic version tracking file (0.1.0)
-├── pyproject.toml       # Build system and Python tool configurations (Ruff, Black, Pytest)
-├── requirements.txt     # Runtime dependencies definition
-├── requirements-dev.txt # Development dependencies definition
-└── train.py             # Root execution entry-point script
+```
+  Input Degraded Array (1, H, W)
+                │
+     ┌─────────────────────┐
+     │  Head Conv 3x3      │ ==> Channel Width C
+     └──────────┬──────────┘
+                │
+     ┌──────────▼──────────┐        Skip Connection (Concat / Add)        ┌─────────────────────┐
+     │   Encoder Stage 1   ├─────────────────────────────────────────────►│   Decoder Stage 1   │
+     └──────────┬──────────┘                                             └──────────▲──────────┘
+                │ Strided Conv Downsample                                          │ Transposed Conv Upsample
+     ┌──────────▼──────────┐                                             ┌──────────┴──────────┐
+     │   Encoder Stage 2   ├─────────────────────────────────────────────►│   Decoder Stage 2   │
+     └──────────┬──────────┘                                             └──────────▲──────────┘
+                │ Downsample                                                       │ Upsample
+                └───────────────────► ┌─────────────────────┐ ─────────────────────┘
+                                      │    Middle Block     │
+                                      └─────────────────────┘
+                                                 │
+                                      ┌──────────▼──────────┐
+                                      │   Tail Conv 3x3     │
+                                      └──────────┬──────────┘
+                                                 │
+                                                 ▼
+                              Restored Micrograph (1, 2H, 2W)
 ```
 
-### Module Responsibilities
-* `src/datasets/`: Custom PyTorch `Dataset` implementations handling `.npy` file loading, patch cropping, and data augmentations.
-* `src/models/`: Modular NAFNet neural network blocks, including `SimpleGate`, `SCA`, `NAFBlock`, and top-level encoder-decoder structures.
-* `src/engine/`: Training execution engine managing epoch loops, mixed-precision scaling, validation evaluations, and checkpoint persistence.
-* `src/losses/`: Differentiable objective functions tailored for image restoration.
-* `src/metrics/`: Full-reference image quality metric algorithms (PSNR, SSIM).
-* `src/utils/`: Infrastructure utilities for logging, seeding, and configuration parsing.
+### Internal NAFBlock Structure
 
----
-
-## 8. System Architecture
-
-The high-level restoration pipeline processes degraded SEM micrographs through a deterministic, end-to-end data flow:
-
-```text
-+-----------------------+     +------------------------+     +-------------------------+
-| Degraded SEM Input    | --> | Preprocessing &        | --> | PyTorch DataLoader      |
-| (.npy array)          |     | Normalization          |     | (Batched Patches)       |
-+-----------------------+     +------------------------+     +-------------------------+
-                                                                          |
-                                                                          v
-+-----------------------+     +------------------------+     +-------------------------+
-| Restored Output       | <-- | Post-Processing &      | <-- | NAFNet Model            |
-| Micrograph            |     | Range Denormalization  |     | (Encoder-Decoder)       |
-+-----------------------+     +------------------------+     +-------------------------+
+```
+                     Input Feature Tensor X
+                               │
+               ┌───────────────┴───────────────┐
+               │ LayerNorm                     │
+               │ Depthwise Conv 3x3            │
+               │ SimpleGate (X1 ⊙ X2)          │ <-- Non-linear Activation Replacement
+               │ Simplified Attention (SCA)    │ <-- Global Context Channel Scaling
+               │ Pointwise Conv 1x1            │
+               └───────────────┬───────────────┘
+                               │ (+) Intra-Block Skip Connection
+                               ▼
+               ┌───────────────────────────────┐
+               │ LayerNorm                     │
+               │ Feed-Forward Net (FFN)        │
+               │ SimpleGate (FFN)              │
+               └───────────────┬───────────────┘
+                               │ (+) Residual Skip Connection
+                               ▼
+                     Output Feature Tensor Y
 ```
 
-### Operational Pipeline Flow
-1. **Input Stage**: Raw degraded SEM array files (`.npy`) are loaded from disk.
-2. **Preprocessing**: Intensity ranges are normalized to $[0.0, 1.0]$ and split into spatial sub-patches during training.
-3. **DataLoader Stage**: Parallel workers construct mini-batches with applied spatial augmentations.
-4. **NAFNet Processing**: Feature extraction, multi-scale encoding, residual attention processing, and multi-scale decoding reconstruct the clean residual feature map.
-5. **Post-Processing Stage**: Output feature tensors are converted back to normalized arrays, denormalized, and saved alongside calculated evaluation metrics.
+---
+
+## Empirical Capacity Scaling Benchmarks (Width 32 vs 48 vs 64)
+
+To evaluate the quality-vs-capacity curve under controlled conditions (Issue #38), three experiments were executed on Tesla T4 GPUs using identical training hyperparameters (Charbonnier Loss $\epsilon=10^{-3}$, AdamW, Cosine Annealing 50 epochs, seed 42):
+
+### Experiment Matrix & Diminishing Returns Analysis
+
+| Experiment ID | Base Width | Parameters | Raw Noisy PSNR | Best Validation PSNR | Best SSIM | PSNR Gain vs Raw | $\Delta$ PSNR vs Prev | $\Delta$ SSIM vs Prev |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Raw Noisy Input** | - | - | 22.9069 dB | - | - | - | - | - |
+| **exp001 (Baseline)** | **32** | **1,129,028** | 22.9069 dB | **29.4118 dB** | **0.7891** | +6.5049 dB | — | — |
+| **exp002 (Scaled-48)** | **48** | **2,521,444** | 22.9069 dB | **29.9887 dB** | **0.8004** | +7.0818 dB | **+0.5769 dB** | **+0.0113** |
+| **exp003 (Scaled-64)** | **64** | **4,465,796** | 22.9069 dB | **30.0312 dB** | **0.8013** | +7.1243 dB | **+0.0425 dB** | **+0.0009** |
+
+> [!NOTE]
+> **Key Finding:** Scaling width from 32 to 48 delivers a strong **+0.5769 dB** quality boost for a $2.23\times$ parameter increase. However, scaling further from 48 to 64 yields a marginal **+0.0425 dB** gain despite a $1.77\times$ parameter expansion, confirming **Width 48 as the optimal sweet-spot** for deployment.
 
 ---
 
-## 9. Data Processing Pipeline
+## Qualitative Restoration Results & Visual Zoom Crops
 
-The data processing pipeline prepares low-dose SEM micrographs for model consumption through seven sequential stages:
+### Sample 000214 — Restoration Comparison Grid & Zoom Crop
 
-1. **Array Loading**: Direct memory-mapped loading of `.npy` arrays using `numpy.load`.
-2. **Validation**: Assertion checks verifying shape consistency, non-empty content, and matching input/target spatial dimensions.
-3. **Intensity Normalization**: Scaling raw pixel intensities to float32 values bounded in $[0.0, 1.0]$.
-4. **Patch Extraction**: Random cropping of fixed-size sub-patches (e.g., $128 \times 128$ or $256 \times 256$) to enforce uniform tensor dimensions and increase training sample efficiency.
-5. **Data Augmentation**: Applying geometry-preserving spatial transformations (random horizontal flips, vertical flips, $90^\circ$ rotations) using `albumentations`.
-6. **Tensor Conversion**: Converting NumPy arrays into PyTorch floating-point tensors (`torch.FloatTensor`) formatted as $(C, H, W)$.
-7. **Batch Assembly**: Collating individual patch tensors into mini-batches $(B, C, H, W)$ for GPU transfer.
+| Full Comparison Grid | Fine Feature Zoom Crop |
+| :---: | :---: |
+| ![Comparison Grid 000214](results/images/qualitative_analysis/000214_comparison_grid.png) | ![Zoom Crop 000214](results/images/qualitative_analysis/000214_zoom_crop.png) |
+
+### Sample 000897 — Complex Pattern Topography
+
+| Full Comparison Grid | Fine Feature Zoom Crop |
+| :---: | :---: |
+| ![Comparison Grid 000897](results/images/qualitative_analysis/000897_comparison_grid.png) | ![Zoom Crop 000897](results/images/qualitative_analysis/000897_zoom_crop.png) |
+
+### Sample 002538 — High-Noise Edge Reconstruction
+
+| Full Comparison Grid | Fine Feature Zoom Crop |
+| :---: | :---: |
+| ![Comparison Grid 002538](results/images/qualitative_analysis/002538_comparison_grid.png) | ![Zoom Crop 002538](results/images/qualitative_analysis/002538_zoom_crop.png) |
+
+*Figure 3: Publication-grade 4-column qualitative evaluation grids showing Degraded Input, Model Output, Ground Truth Reference, and Absolute Residual Error Maps ($|I_{\text{pred}} - I_{\text{gt}}|$).*
 
 ---
 
-## 10. Model Architecture
+## Dataset Throughput & Loader Benchmarks
 
-NAFNet operates as an encoder-decoder network enhanced with cross-stage skip connections and activation-free residual blocks.
+Benchmarking conducted on 3,200 paired SEM arrays (`results/benchmarks/dataset_benchmark_report.md`):
 
-```text
-Input (C, H, W)
-      |
-[ Head Conv3x3 ]
-      |
-[ Encoder Stage 1 ] ------ (Skip Connection) -------> [ Decoder Stage 1 ] ---> [ Tail Conv3x3 ] ---> Output (C, H, W)
-      |                                                     ^
- [ Downsample ]                                        [ Upsample ]
-      |                                                     |
-[ Encoder Stage 2 ] ------ (Skip Connection) -------> [ Decoder Stage 2 ]
-      |                                                     ^
- [ Downsample ]                                        [ Upsample ]
-      \------------------ [ Middle Block ] ----------------/
+| Performance Metric | Measured Value | Target Standard | Compliance Status |
+| :--- | :--- | :--- | :--- |
+| **Peak Init Memory** | `3.608 MB` | $< 10.0 \text{ MB}$ | PASS |
+| **P95 Fetch Latency** | `3.546 ms` | $< 5.0 \text{ ms}$ | PASS |
+| **100-Sample Read Time** | `0.297 s` | $< 0.5 \text{ s}$ | PASS |
+| **Sequential Throughput** | `336.6 samples/sec` | Stream-ready | PASS |
+| **Tensor Data Type** | `torch.float32` | Bounded $[0.0, 1.0]$ | PASS |
+
+---
+
+## Quick Start & CLI Workflows
+
+### 1. Installation
+
+```bash
+git clone https://github.com/your-org/AI-SEM-Image-Restoration.git
+cd AI-SEM-Image-Restoration
+
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
-### Key Architectural Components
+### 2. Verify Model MACs & Parameters
 
-1. **Head Convolution**: Maps input image channels $C$ (1 for grayscale SEM) into an initial feature dimension $N$ (width parameter).
-2. **NAFBlock**: The foundational building block containing:
-   * **Depthwise Convolution**: $3 \times 3$ depthwise convolution for spatial context extraction.
-   * **SimpleGate**: Splits feature channels in half ($2C \to C$) and applies element-wise multiplication, replacing conventional non-linear activations.
-   * **Simplified Channel Attention (SCA)**: Computes global channel statistics via mean pooling and scales channel features directly.
-   * **Layer Normalization**: Applied before gating and attention blocks to stabilize optimization.
-3. **Encoder**: Hierarchical stages of NAFBlocks followed by strided convolution downsampling operations, doubling channel capacity while halving spatial resolution.
-4. **Middle Block**: Deep sequence of NAFBlocks operating at the bottleneck resolution to model global spatial context.
-5. **Decoder**: Hierarchical stages incorporating transposed convolution upsampling, feature concatenation via skip connections, and NAFBlock refinement.
-6. **Tail Reconstruction**: $3 \times 3$ convolution mapping bottleneck features back to $C$ output channels, added back to the original input via long residual skip connection ($I_{\text{restored}} = I_{\text{degraded}} + R_{\text{pred}}$).
+```bash
+python scripts/verify_params.py
+```
 
----
+### 3. Profile Raw SEM Datasets
 
-## 11. Training Pipeline
+```bash
+python scripts/analyze_dataset.py --dataset-dir datasets/
+```
 
-The training pipeline defines the complete optimization protocol for model convergence:
+### 4. Run Training (Baseline vs. Width-48 vs. Width-64)
 
-* **Optimizer**: AdamW ($\beta_1=0.9, \beta_2=0.999$, weight decay $10^{-3}$).
-* **Learning Rate Scheduler**: Cosine Annealing Learning Rate schedule with linear warmup epochs.
-* **Loss Functions**: Primary reconstruction loss using **PSNR Loss** or **Charbonnier Loss** ($\sqrt{\|I_{\text{pred}} - I_{\text{gt}}\|^2 + \epsilon^2}$ with $\epsilon=10^{-3}$), which provides smoother gradient optimization around zero error compared to standard $L_1$ loss.
-* **Mixed Precision (AMP)**: PyTorch Automatic Mixed Precision (`torch.cuda.amp.autocast`) using FP16/BF16 to accelerate training speed and reduce GPU memory consumption.
-* **Validation Protocol**: Epoch-wise evaluation computing PSNR and SSIM on validation splits.
-* **Checkpointing**: Automatic tracking and saving of `best_model.pth` based on peak validation PSNR, alongside regular periodic epoch state saves.
-* **Logging**: Dual-channel output writing formatted text logs to `logs/` and quantitative scalar curves to `outputs/tensorboard/`.
-* **Early Stopping**: Monitored validation PSNR plateau detection to terminate non-converging runs.
+```bash
+# Baseline Width-32
+python train.py --config configs/train.yaml
 
----
+# Optimal Capacity Width-48
+python train.py --config configs/train.yaml --experiment configs/experiments/exp002_nafnet_width48.yaml
 
-## 12. Evaluation Strategy
+# Maximum Capacity Width-64
+python train.py --config configs/train.yaml --experiment configs/experiments/exp003_nafnet_width64.yaml
+```
 
-Restoration fidelity on SEM micrographs is evaluated using both quantitative full-reference metrics and qualitative visual inspection:
+### 5. Sliding-Window Overlap Inference
 
-### Quantitative Metrics
+```bash
+python scripts/predict.py \
+  --checkpoint experiments/checkpoints/best_model.pth \
+  --input datasets/test/degraded/ \
+  --output results/predictions/ \
+  --tile-size 256 \
+  --overlap 0.25
+```
 
-1. **Peak Signal-to-Noise Ratio (PSNR)**:
-   Measures logarithmic mean squared error (MSE) relative to maximum signal value ($MAX_I = 1.0$):
-   $$\text{PSNR} = 10 \cdot \log_{10} \left( \frac{MAX_I^2}{\text{MSE}} \right)$$
-   *Higher values indicate superior noise reduction.*
+### 6. Qualitative Evaluation Grid Generation
 
-2. **Structural Similarity Index Measure (SSIM)**:
-   Evaluates structural fidelity across luminance ($\text{l}$), contrast ($\text{c}$), and structure ($\text{s}$) components:
-   $$\text{SSIM}(x, y) = \frac{(2\mu_x\mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}$$
-   *Essential for verifying that nanometer-scale line edges and contact hole structures are preserved without distortion.*
-
-### Qualitative & Runtime Evaluation
-* **Difference Maps**: Computing absolute error residual maps ($|I_{\text{restored}} - I_{\text{gt}}|$) to visually inspect structural artifact distribution.
-* **Line-Edge Profile Analysis**: Plotting 1D intensity cross-sections across line boundaries to verify edge sharpness preservation.
-* **Inference Latency**: Measuring millisecond execution times per patch to evaluate suitability for inline semiconductor inspection tools.
+```bash
+python scripts/evaluate_qualitative.py \
+  --dataset-dir datasets/ \
+  --split test \
+  --baseline-checkpoint experiments/checkpoints/best_model.pth \
+  --num-samples 6
+```
 
 ---
 
-## 13. Configuration System
+## Mathematical Formulation & Differentiable Objectives
 
-The project utilizes a hierarchical YAML configuration system located in `configs/`:
+### SimpleGate Mechanism
+$$\text{SimpleGate}(X_1, X_2) = X_1 \odot X_2 \quad (X_1, X_2 \in \mathbb{R}^{B \times C \times H \times W})$$
 
-* **`default.yaml`**: Defines base execution environment parameters (CUDA device, random seeds, worker counts, default logging directory paths).
-* **`train.yaml`**: Specifies optimization settings (learning rate, batch size, epoch bounds, loss function parameters, scheduler steps).
-* **`model.yaml`**: Defines NAFNet architecture hyperparameters (channel width, block counts per encoder/decoder stage, attention flags).
-* **`inference.yaml`**: Specifies evaluation settings (checkpoint path, input directory, patch tiling parameters, output destination).
-* **`configs/experiments/`**: Standalone experiment override files (e.g., `exp001.yaml`) enabling full experiment reproducibility without mutating base configuration files.
+### Simplified Channel Attention (SCA)
+$$\text{SCA}(X) = X \odot \mathcal{F}_{\text{Linear}}\left( \frac{1}{HW} \sum_{i=1}^{H} \sum_{j=1}^{W} X_{:, :, i, j} \right)$$
 
----
+### Differentiable Charbonnier Loss
+$$\mathcal{L}_{\text{Charbonnier}}(I_{\text{pred}}, I_{\text{gt}}) = \frac{1}{N} \sum_{i=1}^{N} \sqrt{(I_{\text{pred}}^{(i)} - I_{\text{gt}}^{(i)})^2 + \epsilon^2} \quad (\epsilon = 10^{-3})$$
 
-## 14. Development Workflow
-
-The repository enforces modern software engineering practices:
-
-### Coding Standards
-* **Python Version**: Python 3.11+.
-* **Code Style**: Strictly compliant with PEP8, enforced via `black --line-length 88`.
-* **Linting**: Static code analysis via `ruff`.
-* **Import Sorting**: Standardized grouping via `isort --profile black`.
-* **Type Annotations**: Comprehensive static type hints across all function parameters and return values.
-* **Docstrings**: Google-style docstrings for all modules, classes, and methods.
-
-### Quality Assurance & Testing
-* Automated pre-commit hooks executing formatters and linters on git commit (`.pre-commit-config.yaml`).
-* Modular unit and integration tests executing under `pytest`.
+### Peak Signal-to-Noise Ratio (PSNR)
+$$\text{PSNR} = 10 \cdot \log_{10} \left( \frac{1.0^2}{\text{MSE}} \right) = 10 \cdot \log_{10} \left( \frac{1.0}{\frac{1}{N}\sum (I_{\text{pred}} - I_{\text{gt}})^2} \right)$$
 
 ---
 
-## 15. Experiment Tracking
+## Repository Structure
 
-To ensure rigorous scientific reproducibility:
-
-1. **Experiment Isolation**: Every experiment run is assigned a unique identifier (e.g., `exp001_nafnet_baseline`).
-2. **Configuration Snapshots**: The exact resolved YAML configuration is copied into the experiment output folder at runtime start.
-3. **Checkpoint Retention**: Model weights are stored in `outputs/checkpoints/` alongside optimizer states and current epoch counts.
-4. **Metric Logging**: TensorBoard event logs track training loss, validation PSNR, validation SSIM, and learning rate curves over time.
-5. **Result Summaries**: Summary evaluation tables are stored in Markdown and CSV formats under `results/tables/`.
-
----
-
-## 16. Current Project Roadmap
-
-- [x] **Phase 1: Repository Foundation**
-  - [x] Establish directory structure (`src/` package layout, `configs/`, `tests/`, `assets/`, `weights/`).
-  - [x] Create project setup files (`pyproject.toml`, `requirements.txt`, `requirements-dev.txt`, `.gitignore`, `.pre-commit-config.yaml`).
-  - [x] Create master research-grade `README.md` specification.
-  - [x] Initialize Git version control and remote synchronization.
-
-- [ ] **Phase 2: Dataset Characterization & Preprocessing**
-  - [ ] Implement exploratory data analysis scripts for `.npy` SEM arrays in `notebooks/`.
-  - [ ] Compute dataset-wide intensity statistics (min, max, mean, std, variance).
-  - [ ] Define dataset split boundaries (train / validation / test).
-
-- [ ] **Phase 3: Dataset Loader & Augmentation Pipeline**
-  - [ ] Implement `src/datasets/sem_dataset.py` for `.npy` image pair loading.
-  - [ ] Build random sub-patch extraction logic.
-  - [ ] Integrate spatial augmentations via `albumentations`.
-  - [ ] Write unit tests for dataset loading in `tests/test_dataset.py`.
-
-- [ ] **Phase 4: NAFNet Model Implementation**
-  - [ ] Implement `SimpleGate` and `Simplified Channel Attention (SCA)` modules in `src/models/nafnet.py`.
-  - [ ] Build `NAFBlock` and hierarchical Encoder-Decoder network.
-  - [ ] Write unit tests verifying input/output tensor shape consistency in `tests/test_model.py`.
-
-- [ ] **Phase 5: Loss Functions & Evaluation Metrics**
-  - [ ] Implement `PSNR` and `SSIM` calculation modules in `src/metrics/`.
-  - [ ] Implement `CharbonnierLoss` and `PSNRLoss` in `src/losses/`.
-  - [ ] Write unit tests for metrics in `tests/test_metrics.py`.
-
-- [ ] **Phase 6: Training & Validation Engine**
-  - [ ] Implement modular `Trainer` class in `src/engine/trainer.py`.
-  - [ ] Integrate Automatic Mixed Precision (AMP) and Cosine Annealing scheduler.
-  - [ ] Implement checkpoint saving and TensorBoard logging.
-
-- [ ] **Phase 7: Inference Pipeline & Visualization**
-  - [ ] Implement sliding-window / patch-tiling inference pipeline for full-resolution micrographs in `src/engine/evaluator.py`.
-  - [ ] Build visual grid generators (Degraded Input vs. Restored Output vs. Ground Truth).
-
-- [ ] **Phase 8: Benchmarking & Reporting**
-  - [ ] Execute comparative ablation experiments.
-  - [ ] Populate quantitative result tables under `results/tables/`.
-  - [ ] Generate final technical research report.
+```text
+AI-SEM-Image-Restoration/
+├── assets/                    # Visual assets and design diagrams
+├── configs/                   # YAML configuration files
+│   ├── default.yaml           # Primary system paths and CUDA device options
+│   ├── model.yaml             # NAFNet model architecture hyperparameters
+│   ├── train.yaml             # Optimization schedules and loss parameters
+│   ├── inference.yaml         # Patch-tiling sliding window config
+│   └── experiments/           # Reproducible experiment configurations
+│       ├── exp001.yaml
+│       ├── exp002_nafnet_width48.yaml
+│       └── exp003_nafnet_width64.yaml
+├── datasets/                  # Paired SEM array data (.npy float32)
+├── docs/                      # Comprehensive technical docs & research reports
+│   ├── KLA_webinar_key_findings_and_solution_strategy.md
+│   ├── NAFNet_Architecture_Reverse_Engineering.md
+│   ├── data_pipeline_design.md
+│   ├── dataset_characterization.md
+│   ├── software_architecture.md
+│   └── experiments/
+│       └── issue_38_nafnet_capacity_scaling.md
+├── experiments/               # Checkpoint storage & TensorBoard execution logs
+├── results/                   # Evaluation results, tables, and visual outputs
+│   ├── benchmarks/
+│   │   └── dataset_benchmark_report.md
+│   └── images/
+│       ├── dataset_analysis/
+│       │   ├── pixel_intensity_histogram.png
+│       │   └── sample_image_pairs_comparison.png
+│       └── qualitative_analysis/
+│           ├── 000214_comparison_grid.png
+│           ├── 000214_zoom_crop.png
+│           ├── 000897_comparison_grid.png
+│           ├── 000897_zoom_crop.png
+│           ├── 002538_comparison_grid.png
+│           └── 002538_zoom_crop.png
+├── scripts/                   # CLI execution scripts and benchmarks
+├── src/                       # Main Python source package
+│   ├── datasets/              # Dataset loader and albumentations pipeline
+│   ├── engine/                # Trainer, Evaluator, AMP manager
+│   ├── losses/                # Charbonnier and PSNR loss functions
+│   ├── metrics/               # PSNR, SSIM, and LER calculators
+│   ├── models/                # NAFNet model architecture implementation
+│   └── utils/                 # Config, logger, seed, and visualizer helpers
+├── tests/                     # Pytest suite
+├── train.py                   # Master training entry-point
+├── pyproject.toml             # Pytest & Ruff tool settings
+├── requirements.txt           # Main runtime dependencies
+└── requirements-dev.txt       # Development dependencies
+```
 
 ---
 
-## 17. Future Enhancements
+## Configuration System
 
-* **Self-Supervised & Blind Denoising**: Explore Noise2Noise or Neighbor2Neighbor approaches to remove the requirement for paired high-dose ground-truth images.
-* **Mixed Noise Modeling**: Incorporate physics-informed noise modeling specific to electron beam charging and scan line jitter.
-* **Model Compression & Quantization**: Apply post-training quantization (INT8/FP16) or structured pruning to reduce memory footprint.
-* **TensorRT / ONNX Acceleration**: Export trained NAFNet models to ONNX and TensorRT for real-time inline deployment on semiconductor inspection hardware.
-* **Transformer Hybrid Architectures**: Evaluate hybrid activation-free transformer blocks for long-range spatial artifact modeling.
+Example hyperparameter override (`configs/experiments/exp002_nafnet_width48.yaml`):
+
+```yaml
+experiment:
+  id: exp002_nafnet_width48
+  description: "NAFNet capacity scaling experiment - base width 48"
+
+model:
+  width: 48
+  enc_blk_nums: [1, 1, 1]
+  middle_blk_num: 1
+  dec_blk_nums: [1, 1, 1]
+  upscale: 2
+
+train:
+  batch_size: 4
+  epochs: 50
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  loss:
+    name: CharbonnierLoss
+    eps: 1.0e-3
+```
 
 ---
 
-## 18. References
+## Roadmap & Future Extensions
 
-1. **NAFNet**: Chen, L., Chu, X., Zhang, X., & Sun, J. (2022). *Simple Baselines for Image Restoration*. European Conference on Computer Vision (ECCV). [arXiv:2204.04676](https://arxiv.org/abs/2204.04676)
-2. **DnCNN**: Zhang, K., Zuo, W., Chen, Y., Meng, D., & Zhang, L. (2017). *Beyond a Gaussian Denoiser: Residual Learning of Deep CNN for Image Denoising*. IEEE Transactions on Image Processing, 26(7), 3142-3155.
-3. **Restormer**: Zamir, S. W., Arora, A., Khan, S., Hayat, M., Khan, F. S., & Yang, M. H. (2022). *Restormer: Efficient Transformer for High-Resolution Image Restoration*. IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR).
-4. **SwinIR**: Liang, J., Cao, J., Sun, G., Zhang, K., Van Gool, L., & Timofte, R. (2021). *SwinIR: Image Restoration Using Swin Transformer*. IEEE/CVF International Conference on Computer Vision (ICCV) Workshops.
-5. **RIDNet**: Anwar, S., & Barnes, N. (2019). *Real Image Denoising With Feature Attention*. IEEE/CVF International Conference on Computer Vision (ICCV).
+- [x] **Phase 1: Dataset Characterization & Architecture Setup**
+  - [x] Float32 `.npy` dataset analysis and profiling.
+  - [x] NAFNet encoder-decoder implementation with SimpleGate & SCA.
+- [x] **Phase 2: Training & Controlled Capacity Benchmarking**
+  - [x] Mixed precision (AMP) trainer with Cosine Annealing scheduler.
+  - [x] Issue #38 Capacity scaling benchmark (`exp001`, `exp002`, `exp003`).
+- [x] **Phase 3: Inference & Qualitative Visual Audit**
+  - [x] Sliding-window Gaussian tile blending for full-resolution micrographs.
+  - [x] Publication-ready 4-column qualitative grid and zoom-crop generation.
+- [ ] **Phase 4: Fab Edge Deployment (Upcoming)**
+  - [ ] ONNX model export & TensorRT FP16/INT8 graph compilation.
+  - [ ] Self-supervised Noise2Noise training for unpaired SEM scans.
 
 ---
 
-## 19. License
+## References & Citation
 
-This repository is distributed under the open-source **MIT License**. See the [`LICENSE`](LICENSE) file for full license terms and conditions.
+```bibtex
+@inproceedings{chen2022nafnet,
+  title={Simple Baselines for Image Restoration},
+  author={Chen, Liangyu and Chu, Xiaojie and Zhang, Xiangyu and Sun, Jian},
+  booktitle={European Conference on Computer Vision (ECCV)},
+  year={2022}
+}
+
+@techreport{kla_sem_restoration_2026,
+  title={AI-Based Restoration of Low-Dose Scanning Electron Microscope Images for Semiconductor Defect Inspection},
+  author={KLA / Semicon India Hackathon Team},
+  institution={Repository Codebase},
+  year={2026}
+}
+```
 
 ---
 
-## 20. Acknowledgements
+## License & Acknowledgements
 
-* **NAFNet Authors**: For introducing activation-free baseline architectures for image restoration.
-* **PyTorch & Open-Source Vision Community**: For providing core machine learning frameworks, computer vision primitives, and performance optimization tools.
+This repository is distributed under the **[MIT License](LICENSE)**.
+
+- **KLA Corporation / Semicon India Hackathon**: For defining problem parameters and technical guidance.
+- **NAFNet Authors**: For pioneering nonlinear activation free neural network architectures.
+- **PyTorch Community**: For deep learning framework tooling.

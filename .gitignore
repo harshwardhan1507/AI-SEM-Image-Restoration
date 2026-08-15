@@ -125,3 +125,7 @@ configs/experiments/local*.yaml
 graphify-out/cache/
 graphify-out/.graphify_*
 
+# Agent & IDE files
+.gemini/
+
+
