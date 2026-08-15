@@ -1,0 +1,47 @@
+# Experiment 005 Configuration: Scaled NAFNet Width 48 SEM Image Restoration - MSE Loss
+experiment_id: "exp005_nafnet_mse"
+description: "Scaled NAFNet with width=48 on SEM dataset for 50 epochs with MSE loss."
+
+system:
+  seed: 42
+  device: "auto"
+  log_dir: "logs/exp005_nafnet_mse"
+  checkpoint_dir: "outputs/checkpoints/exp005_nafnet_mse"
+  tensorboard_dir: "outputs/tensorboard/exp005_nafnet_mse"
+
+data:
+  dataset_dir: "./datasets"
+  splits: ["train", "val"]
+  train_batch_size: 4
+  val_batch_size: 4
+  num_workers: 4
+  pin_memory: true
+
+model:
+  name: "NAFNet"
+  img_channel: 1
+  width: 48
+  middle_blk_num: 1
+  enc_blk_nums: [1, 1, 1]
+  dec_blk_nums: [1, 1, 1]
+  upscale: 2
+  drop_out_rate: 0.0
+
+loss:
+  name: "mse"
+  reduction: "mean"
+
+metrics:
+  psnr: true
+  ssim: true
+  lpips: true
+
+train:
+  epochs: 50
+  batch_size: 4
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  min_lr: 1.0e-6
+  mixed_precision: false
+  val_freq: 1
+  log_freq: 10
