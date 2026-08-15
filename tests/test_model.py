@@ -263,6 +263,24 @@ class TestForwardShapeContracts:
         y = model(x)
         assert y.shape == (1, 1, 128, 128)
 
+    def test_rectangular_micrograph_300_400(self, tiny_model: NAFNet) -> None:
+        """Shape contract for arbitrary rectangular input: (1, 1, 300, 400) -> (1, 1, 600, 800)."""
+        x = torch.randn(1, 1, 300, 400)
+        y = tiny_model(x)
+        assert y.shape == (1, 1, 600, 800)
+        assert torch.isfinite(y).all()
+        assert not torch.isnan(y).any()
+        assert not torch.isinf(y).any()
+
+    def test_output_sanity_finite(self, tiny_model: NAFNet) -> None:
+        """Model output contains only finite numerical values (zero NaNs and zero Infs)."""
+        x = torch.rand(2, 1, 128, 128)
+        y = tiny_model(x)
+        assert y.shape == (2, 1, 256, 256)
+        assert torch.isfinite(y).all().item()
+        assert not torch.isnan(y).any().item()
+        assert not torch.isinf(y).any().item()
+
     def test_3_channel_input(self) -> None:
         """Shape contract for 3-channel (RGB) input."""
         model = NAFNet(
@@ -317,9 +335,9 @@ class TestGradientFlow:
         loss.backward()
 
         for name, param in tiny_model.named_parameters():
-            assert (
-                param.grad is not None
-            ), f"Parameter '{name}' has None gradient after backward pass"
+            assert param.grad is not None, (
+                f"Parameter '{name}' has None gradient after backward pass"
+            )
 
     def test_critical_parameters_have_nonzero_gradients(
         self, tiny_model: NAFNet
@@ -333,17 +351,17 @@ class TestGradientFlow:
         # Head and tail convolutions must always have non-zero gradients
         for name, param in tiny_model.named_parameters():
             if "intro" in name or "up_tail" in name:
-                assert (
-                    param.grad is not None and param.grad.abs().sum() > 0
-                ), f"Critical parameter '{name}' has zero gradient"
+                assert param.grad is not None and param.grad.abs().sum() > 0, (
+                    f"Critical parameter '{name}' has zero gradient"
+                )
 
         # beta and gamma scaling parameters must have non-zero gradients
         # (they are the gateway for branch learning to begin)
         for name, param in tiny_model.named_parameters():
             if name.endswith("beta") or name.endswith("gamma"):
-                assert (
-                    param.grad is not None and param.grad.abs().sum() > 0
-                ), f"Scaling parameter '{name}' has zero gradient"
+                assert param.grad is not None and param.grad.abs().sum() > 0, (
+                    f"Scaling parameter '{name}' has zero gradient"
+                )
 
     def test_no_detached_parameters(self, tiny_model: NAFNet) -> None:
         """All parameters require gradients (none accidentally detached)."""
@@ -367,9 +385,9 @@ class TestParameterCount:
             block = NAFBlock(c)
             actual = sum(p.numel() for p in block.parameters())
             expected = 7 * c * c + 33 * c
-            assert (
-                actual == expected
-            ), f"NAFBlock({c}): expected {expected}, got {actual}"
+            assert actual == expected, (
+                f"NAFBlock({c}): expected {expected}, got {actual}"
+            )
 
     def test_total_parameter_count_tiny(self) -> None:
         """Verify total parameter count for tiny configuration is reasonable."""
@@ -410,6 +428,24 @@ class TestParameterCount:
         ratio = params_32 / params_16
         assert 3.0 < ratio < 5.0, f"Width scaling ratio: {ratio:.2f} (expected ~4.0)"
 
+    def test_preferred_width48_parameter_count(self) -> None:
+        """Verify the preferred deployment model (Width 48) parameter count (~2.52M)."""
+        cfg = {
+            "model": {
+                "img_channel": 1,
+                "width": 48,
+                "middle_blk_num": 1,
+                "enc_blk_nums": [1, 1, 1],
+                "dec_blk_nums": [1, 1, 1],
+                "upscale": 2,
+            }
+        }
+        model_48 = build_model(cfg)
+        params_48 = sum(p.numel() for p in model_48.parameters())
+        assert params_48 == 2_521_444, (
+            f"Expected 2,521,444 params for Width 48, got {params_48}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Test: Determinism
@@ -426,9 +462,9 @@ class TestDeterminism:
         with torch.no_grad():
             y1 = tiny_model(x.clone())
             y2 = tiny_model(x.clone())
-        assert torch.allclose(
-            y1, y2, atol=1e-6
-        ), f"Outputs differ: max diff = {(y1 - y2).abs().max().item()}"
+        assert torch.allclose(y1, y2, atol=1e-6), (
+            f"Outputs differ: max diff = {(y1 - y2).abs().max().item()}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -531,6 +567,6 @@ class TestMemoryLeaks:
 
         # Allow some tolerance for Python object creation overhead
         tensor_growth = final_tensors - initial_tensors
-        assert (
-            tensor_growth < 500
-        ), f"Potential memory leak: object count grew by {tensor_growth}"
+        assert tensor_growth < 500, (
+            f"Potential memory leak: object count grew by {tensor_growth}"
+        )

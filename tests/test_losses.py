@@ -257,4 +257,3 @@ def test_build_loss_unsupported() -> None:
 
     with pytest.raises(ValueError, match="Loss type must be a string"):
         build_loss({"name": 12345})
-

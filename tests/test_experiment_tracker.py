@@ -1,12 +1,9 @@
 """Unit tests for standardized experiment tracking module (src.utils.experiment_tracker)."""
 
-from pathlib import Path
-import tempfile
-import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import CosineAnnealingLR
 import yaml
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 from src.utils.config import Config
 from src.utils.experiment_tracker import (
@@ -18,7 +15,6 @@ from src.utils.experiment_tracker import (
 
 
 class SimpleTestModel(nn.Module):
-
     def __init__(self):
         super().__init__()
         self.conv = nn.Conv2d(1, 16, kernel_size=3, padding=1)

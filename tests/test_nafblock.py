@@ -75,9 +75,9 @@ class TestNAFBlock:
 
             x = torch.randn(2, c, 32, 32)
             y = block(x)
-            assert torch.allclose(
-                y, x, atol=1e-6
-            ), "Initial output must match input (identity mapping)"
+            assert torch.allclose(y, x, atol=1e-6), (
+                "Initial output must match input (identity mapping)"
+            )
 
     def test_analytical_parameter_count(self) -> None:
         """Verify parameter count matches theoretical formula: P(C) = 7 * C^2 + 33 * C."""
@@ -85,9 +85,9 @@ class TestNAFBlock:
             block = NAFBlock(c=c, DW_Expand=2, FFN_Expand=2)
             actual_params = sum(p.numel() for p in block.parameters())
             expected_params = 7 * (c**2) + 33 * c
-            assert (
-                actual_params == expected_params
-            ), f"For C={c}, expected {expected_params} parameters, got {actual_params}"
+            assert actual_params == expected_params, (
+                f"For C={c}, expected {expected_params} parameters, got {actual_params}"
+            )
 
     def test_gradient_flow(self) -> None:
         """Verify backward pass and gradient flow through all learnable parameters."""
@@ -109,9 +109,9 @@ class TestNAFBlock:
         # Check gradients for all block parameters
         for name, param in block.named_parameters():
             assert param.grad is not None, f"Parameter {name} did not receive gradients"
-            assert not torch.isnan(
-                param.grad
-            ).any(), f"Parameter {name} has NaN gradients"
+            assert not torch.isnan(param.grad).any(), (
+                f"Parameter {name} has NaN gradients"
+            )
             assert (param.grad != 0).any(), f"Parameter {name} has zero gradients"
 
     def test_numerical_stability_suite(self) -> None:
@@ -134,9 +134,9 @@ class TestNAFBlock:
 
         for name, x_test in test_inputs.items():
             y_test = block(x_test)
-            assert torch.isfinite(
-                y_test
-            ).all(), f"Input '{name}' produced non-finite values (NaN/Inf)"
+            assert torch.isfinite(y_test).all(), (
+                f"Input '{name}' produced non-finite values (NaN/Inf)"
+            )
 
     def test_flop_and_benchmark_reporting(self) -> None:
         """Calculate FLOPs for (1, C, H, W) input and log performance benchmark summary."""

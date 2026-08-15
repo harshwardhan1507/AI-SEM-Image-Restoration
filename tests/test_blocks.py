@@ -148,9 +148,9 @@ class TestSimpleGate:
         for input_shape, expected_shape in test_cases:
             x = torch.randn(*input_shape)
             y = gate(x)
-            assert (
-                y.shape == expected_shape
-            ), f"Expected shape {expected_shape}, got {y.shape}"
+            assert y.shape == expected_shape, (
+                f"Expected shape {expected_shape}, got {y.shape}"
+            )
 
     def test_input_validation(self) -> None:
         """Verify exception handling for non-4D tensors or odd channel counts."""
