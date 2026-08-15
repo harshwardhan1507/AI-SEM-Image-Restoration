@@ -12,7 +12,6 @@ Verifies:
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -20,7 +19,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from scripts.predict import main as predict_main, parse_args
+from scripts.predict import main as predict_main
+from scripts.predict import parse_args
 from src.engine.checkpoint import CheckpointManager
 from src.engine.inference import (
     SlidingWindowInference,
@@ -43,7 +43,9 @@ class DummyModel(nn.Module):
         B, C, H, W = x.shape
         out_h = H * self.upscale
         out_w = W * self.upscale
-        return torch.full((B, C, out_h, out_w), self.fill_val, dtype=x.dtype, device=x.device)
+        return torch.full(
+            (B, C, out_h, out_w), self.fill_val, dtype=x.dtype, device=x.device
+        )
 
 
 class IdentityModel(nn.Module):
@@ -68,7 +70,11 @@ def test_tile_starts_calculation() -> None:
     assert _calculate_tile_starts(length=256, tile_size=512, stride=384) == [0]
 
     # Length exactly divisible by stride
-    assert _calculate_tile_starts(length=1280, tile_size=512, stride=384) == [0, 384, 768]
+    assert _calculate_tile_starts(length=1280, tile_size=512, stride=384) == [
+        0,
+        384,
+        768,
+    ]
 
     # Length not divisible by stride; must append last_start (length - tile_size)
     starts = _calculate_tile_starts(length=1000, tile_size=512, stride=384)
@@ -78,7 +84,9 @@ def test_tile_starts_calculation() -> None:
 
 def test_gaussian_weight_matrix() -> None:
     """Verify Gaussian weighting matrix properties: max at center, non-zero positive weights."""
-    weight = _generate_gaussian_weights(tile_h=64, tile_w=64, device=torch.device("cpu"))
+    weight = _generate_gaussian_weights(
+        tile_h=64, tile_w=64, device=torch.device("cpu")
+    )
     assert weight.shape == (1, 1, 64, 64)
 
     arr = weight.squeeze().numpy()
@@ -97,7 +105,6 @@ def test_parameter_validation() -> None:
     model = DummyModel()
     with pytest.raises(TypeError, match="torch.nn.Module"):
         SlidingWindowInference(model="not_a_model")  # type: ignore[arg-type]
-
 
     with pytest.raises(ValueError, match="tile_size"):
         SlidingWindowInference(model=model, tile_size=0)
@@ -183,21 +190,39 @@ def test_seamless_gaussian_blending_normalization() -> None:
 
 def test_tile_batch_size_invariance() -> None:
     """Verify that varying tile_batch_size yields identical outputs."""
-    model = NAFNet(img_channel=1, width=16, enc_blk_nums=[1], dec_blk_nums=[1], middle_blk_num=1, upscale=2)
+    model = NAFNet(
+        img_channel=1,
+        width=16,
+        enc_blk_nums=[1],
+        dec_blk_nums=[1],
+        middle_blk_num=1,
+        upscale=2,
+    )
     model.eval()
 
     torch.manual_seed(42)
     x = torch.randn(1, 40, 40)
 
-    out_b1 = slide_window_inference(model, x, tile_size=32, overlap=0.25, tile_batch_size=1)
-    out_b4 = slide_window_inference(model, x, tile_size=32, overlap=0.25, tile_batch_size=4)
+    out_b1 = slide_window_inference(
+        model, x, tile_size=32, overlap=0.25, tile_batch_size=1
+    )
+    out_b4 = slide_window_inference(
+        model, x, tile_size=32, overlap=0.25, tile_batch_size=4
+    )
 
     assert torch.allclose(out_b1, out_b4, atol=1e-5)
 
 
 def test_deterministic_cpu_execution() -> None:
     """Verify execution determinism on CPU across multiple runs."""
-    model = NAFNet(img_channel=1, width=16, enc_blk_nums=[1], dec_blk_nums=[1], middle_blk_num=1, upscale=2)
+    model = NAFNet(
+        img_channel=1,
+        width=16,
+        enc_blk_nums=[1],
+        dec_blk_nums=[1],
+        middle_blk_num=1,
+        upscale=2,
+    )
     model.eval()
 
     x = torch.ones(1, 48, 48)
@@ -212,7 +237,14 @@ def test_predict_cli_single_file_and_directory(tmp_path: Path) -> None:
     # 1. Create a dummy checkpoint
     ckpt_dir = tmp_path / "checkpoints"
     manager = CheckpointManager(checkpoint_dir=ckpt_dir)
-    model = NAFNet(img_channel=1, width=16, enc_blk_nums=[1], dec_blk_nums=[1], middle_blk_num=1, upscale=2)
+    model = NAFNet(
+        img_channel=1,
+        width=16,
+        enc_blk_nums=[1],
+        dec_blk_nums=[1],
+        middle_blk_num=1,
+        upscale=2,
+    )
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
     ckpt_path = manager.save(epoch=1, model=model, optimizer=optimizer, metric=25.0)
 

@@ -23,7 +23,7 @@ class SEMDataset(Dataset):
         self,
         root_dir: Union[str, Path],
         split: str = "train",
-        clip_range: Tuple[float, float] = (0.0, 1.0),
+        clip_range: Optional[Tuple[float, float]] = (0.0, 1.0),
         transform: Optional[Callable] = None,
         validate: bool = True,
     ) -> None:

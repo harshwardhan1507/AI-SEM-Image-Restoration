@@ -191,9 +191,9 @@ class TestSchedulerLRUpdate:
         mid_lr = trainer.optimizer.param_groups[0]["lr"]
 
         # After several epochs of cosine annealing, LR should have decreased
-        assert (
-            mid_lr < initial_lr
-        ), f"LR did not decrease: initial={initial_lr}, mid={mid_lr}"
+        assert mid_lr < initial_lr, (
+            f"LR did not decrease: initial={initial_lr}, mid={mid_lr}"
+        )
 
 
 class TestGradientClipping:
@@ -237,9 +237,9 @@ class TestGradientClipping:
         total_norm = torch.nn.utils.clip_grad_norm_(
             trainer.model.parameters(), float("inf")
         )
-        assert (
-            total_norm <= max_norm * 1.1
-        ), f"Gradient norm {total_norm} exceeds max_norm {max_norm}"
+        assert total_norm <= max_norm * 1.1, (
+            f"Gradient norm {total_norm} exceeds max_norm {max_norm}"
+        )
 
 
 class TestAMPDisabled:
@@ -374,9 +374,9 @@ class TestNoGraphRetention:
 
         # All accumulated losses must be plain Python floats
         for loss_val in losses:
-            assert isinstance(
-                loss_val, float
-            ), f"Loss is {type(loss_val)}, expected float"
+            assert isinstance(loss_val, float), (
+                f"Loss is {type(loss_val)}, expected float"
+            )
             # Must not be a tensor with grad
             assert not isinstance(loss_val, torch.Tensor)
 
