@@ -5,10 +5,10 @@ Gaussian spatial blending on single .npy files or entire input directories.
 
 Example:
     Run prediction on a single array file:
-        $ python scripts/predict.py --checkpoint outputs/checkpoints/best_model.pth --input data/sample.npy --output predictions/sample_restored.npy
+        $ python scripts/evaluate.py --checkpoint outputs/checkpoints/best_model.pth --input data/sample.npy --output predictions/sample_restored.npy
 
     Run prediction on an entire directory of micrographs:
-        $ python scripts/predict.py --checkpoint outputs/checkpoints/best_model.pth --input data/test_dir --output predictions/restored_dir --tile-size 512 --overlap 0.25
+        $ python scripts/evaluate.py --checkpoint outputs/checkpoints/best_model.pth --input data/test_dir --output predictions/restored_dir --tile-size 512 --overlap 0.25
 """
 
 from __future__ import annotations
@@ -193,9 +193,13 @@ def load_model_and_weights(
         ckpt_dict["model"]
         if isinstance(ckpt_dict, dict) and "model" in ckpt_dict
         else (
-            ckpt_dict.get("state_dict", ckpt_dict)
-            if isinstance(ckpt_dict, dict)
-            else ckpt_dict
+            ckpt_dict["model_state_dict"]
+            if isinstance(ckpt_dict, dict) and "model_state_dict" in ckpt_dict
+            else (
+                ckpt_dict.get("state_dict", ckpt_dict)
+                if isinstance(ckpt_dict, dict)
+                else ckpt_dict
+            )
         )
     )
 
@@ -242,9 +246,7 @@ def process_single_file(
     arr_raw = np.load(input_path)
     arr = np.array(arr_raw, dtype=np.float32)
 
-    # Standard project preprocessing (clip to [0.0, 1.0])
-    arr = np.clip(arr, 0.0, 1.0)
-
+    # Removed: arr = np.clip(arr, 0.0, 1.0) to preserve >1.0 intensities
     tensor = torch.from_numpy(arr)
     if tensor.ndim == 2:
         tensor = tensor.unsqueeze(0)
@@ -268,7 +270,7 @@ def process_single_file(
 
 
 def main(args: Optional[argparse.Namespace] = None) -> None:
-    """Main execution entry point for predict.py."""
+    """Main execution entry point for evaluate.py."""
     if args is None:
         args = parse_args()
 

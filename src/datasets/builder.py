@@ -16,6 +16,7 @@ from src.utils.config import Config
 
 from .collate import sem_collate
 from .sem_dataset import SEMDataset
+from .transforms import get_transforms
 
 
 def seed_worker(worker_id: int) -> None:
@@ -357,10 +358,36 @@ def build_dataloaders(
     for split in target_splits:
         dataset_split = split
         if split == "val" and not (root_path / "val").exists():
-            dataset_split = "train"
+            pass # scanner.py will handle "val" dynamically with val_split.json
+
+        # Parse augmentation configurations
+        aug_cfg = _extract_config_value(cfg_dict, ["augmentations"], default={})
+        synth_cfg = aug_cfg.get("synthetic_degradation", {})
+        synth_prob = synth_cfg.get("probability", 0.0)
+        
+        # Build transform pipeline
+        is_train = (split == "train")
+        transform = get_transforms(
+            is_train=is_train,
+            synth_prob=synth_prob,
+            synth_kwargs={
+                "blur_prob": synth_cfg.get("blur_prob", 0.15),
+                "speckle_prob": synth_cfg.get("speckle_prob", 1.0),
+                "poisson_prob": synth_cfg.get("poisson_prob", 0.0),
+                "gaussian_prob": synth_cfg.get("gaussian_prob", 0.0),
+                "speckle_sigma_range": synth_cfg.get("speckle_sigma_range", [0.0455, 0.2405]),
+                "poisson_scale_range": synth_cfg.get("poisson_scale_range", [100.0, 250.0]),
+                "gaussian_sigma_range": synth_cfg.get("gaussian_sigma_range", [0.0, 0.0183]),
+            }
+        )
 
         try:
-            dataset = SEMDataset(root_dir=root_path, split=dataset_split)
+            dataset = SEMDataset(
+                root_dir=root_path, 
+                split=dataset_split,
+                transform=transform,
+                validate=True
+            )
             loaders[split] = build_dataloader(
                 dataset=dataset,
                 config=config,

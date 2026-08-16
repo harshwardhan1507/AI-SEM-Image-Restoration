@@ -83,18 +83,7 @@ class QualitativeEvaluator:
 
     @staticmethod
     def normalize_fixed(arr: np.ndarray) -> np.ndarray:
-        """Apply strict fixed [0.0, 1.0] intensity clipping and mapping.
-
-        Primary comparison panels MUST use this fixed intensity mapping.
-        Do NOT independently percentile-normalize or contrast-match panels.
-
-        Args:
-            arr: Input float32 2D image array.
-
-        Returns:
-            np.ndarray: Intensity-clipped array bounded in [0.0, 1.0].
-        """
-        return np.clip(arr, 0.0, 1.0)
+        return arr
 
     @staticmethod
     def align_spatial_dimensions(
@@ -260,14 +249,15 @@ class QualitativeEvaluator:
             y=0.98,
         )
 
+        vmin, vmax = (gt_arr.min(), gt_arr.max()) if "gt_arr" in locals() else (0.0, 1.0)
         for col_idx, panel in enumerate(panels):
             ax = axes_1d[col_idx]
             ax.set_title(panel["title"], fontsize=11, pad=8)
 
             if panel["available"]:
-                ax.imshow(panel["data"], cmap="gray", vmin=0.0, vmax=1.0, aspect="equal")
+                ax.imshow(panel["data"], cmap="gray", vmin=vmin, vmax=vmax, aspect="equal")
             else:
-                ax.imshow(panel["data"], cmap="gray", vmin=0.0, vmax=1.0, aspect="equal", alpha=0.3)
+                ax.imshow(panel["data"], cmap="gray", vmin=vmin, vmax=vmax, aspect="equal", alpha=0.3)
                 ax.text(
                     0.5,
                     0.5,
@@ -416,14 +406,15 @@ class QualitativeEvaluator:
             y=0.98,
         )
 
+        vmin, vmax = (gt_arr.min(), gt_arr.max()) if "gt_arr" in locals() else (0.0, 1.0)
         for col_idx, panel in enumerate(panels):
             ax = axes_1d[col_idx]
             ax.set_title(panel["title"], fontsize=10, pad=6)
 
             if panel["available"]:
-                ax.imshow(panel["data"], cmap="gray", vmin=0.0, vmax=1.0, aspect="equal")
+                ax.imshow(panel["data"], cmap="gray", vmin=vmin, vmax=vmax, aspect="equal")
             else:
-                ax.imshow(panel["data"], cmap="gray", vmin=0.0, vmax=1.0, aspect="equal", alpha=0.3)
+                ax.imshow(panel["data"], cmap="gray", vmin=vmin, vmax=vmax, aspect="equal", alpha=0.3)
                 ax.text(
                     0.5,
                     0.5,

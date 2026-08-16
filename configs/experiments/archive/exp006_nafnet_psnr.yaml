@@ -1,16 +1,16 @@
-# Experiment 004 Configuration: Scaled NAFNet Width 48 SEM Image Restoration - L1 Loss
-experiment_id: "exp004_nafnet_l1"
-description: "Scaled NAFNet with width=48 on SEM dataset for 50 epochs with L1 loss."
+# Experiment 006 Configuration: Scaled NAFNet Width 48 SEM Image Restoration - PSNR Loss
+experiment_id: "exp006_nafnet_psnr"
+description: "Scaled NAFNet with width=48 on SEM dataset for 50 epochs with PSNR loss."
 
 system:
   seed: 42
   device: "auto"
-  log_dir: "logs/exp004_nafnet_l1"
-  checkpoint_dir: "outputs/checkpoints/exp004_nafnet_l1"
-  tensorboard_dir: "outputs/tensorboard/exp004_nafnet_l1"
+  log_dir: "logs/exp006_nafnet_psnr"
+  checkpoint_dir: "outputs/checkpoints/exp006_nafnet_psnr"
+  tensorboard_dir: "outputs/tensorboard/exp006_nafnet_psnr"
 
 data:
-  dataset_dir: "./datasets"
+  dataset_dir: "./dataset"
   splits: ["train", "val"]
   train_batch_size: 4
   val_batch_size: 4
@@ -28,8 +28,9 @@ model:
   drop_out_rate: 0.0
 
 loss:
-  name: "l1"
-  reduction: "mean"
+  name: "psnr"
+  data_range: 1.0
+  eps: 1.0e-8
 
 metrics:
   psnr: true

@@ -52,7 +52,7 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         "--split",
         type=str,
         default="train",
-        choices=["train", "test"],
+        choices=["train", "val", "val_ood", "test"],
         help="Dataset split to evaluate ('train' or 'test').",
     )
     parser.add_argument(
@@ -144,13 +144,13 @@ def resolve_prediction_or_inference(
     # 2. Check model checkpoint
     if checkpoint_path and checkpoint_path.exists():
         try:
-            from scripts.predict import load_model_and_weights
+            from scripts.evaluate import load_model_and_weights
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
             model = load_model_and_weights(checkpoint_path=checkpoint_path, config_path=None, device=device)
 
             raw_arr = np.load(input_path)
-            raw_arr = np.clip(np.array(raw_arr, dtype=np.float32), 0.0, 1.0)
+            raw_arr = np.array(raw_arr, dtype=np.float32)
             tensor = torch.from_numpy(raw_arr)
             if tensor.ndim == 2:
                 tensor = tensor.unsqueeze(0)

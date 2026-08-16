@@ -120,8 +120,9 @@ class Trainer:
         )
         self.scaler = torch.amp.GradScaler(self.device_type, enabled=scaler_enabled)
 
-        # Move model to device
+        # Move model and criterion to device
         self.model = self.model.to(self.device)
+        self.criterion = self.criterion.to(self.device)
 
         # Global step counter for batch-level TensorBoard logging
         self.global_step = 0
@@ -153,7 +154,13 @@ class Trainer:
                 enabled=self.use_amp,
             ):
                 output = self.model(input_tensor)
-                loss = self.criterion(output, target)
+                
+            loss = self.criterion(output, target)
+            
+            if not torch.isfinite(loss):
+                print(f"Skipping batch due to non-finite loss: {loss.item()}")
+                continue
+                
             scaled_loss = self.scaler.scale(loss)
             if isinstance(scaled_loss, torch.Tensor):
                 scaled_loss.backward()
@@ -162,10 +169,19 @@ class Trainer:
                     sl.backward()
             self.scaler.unscale_(self.optimizer)
 
+            # Compute gradient norm
+            parameters = [p for p in self.model.parameters() if p.grad is not None]
+            if len(parameters) > 0:
+                device = parameters[0].grad.device
+                gnorm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2.0).to(device) for p in parameters]), 2.0)
+            else:
+                gnorm = torch.tensor(0.0)
+
             if self.grad_clip_norm is not None:
                 clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
 
-            self.scaler.step(self.optimizer)
+            if torch.isfinite(gnorm):
+                self.scaler.step(self.optimizer)
             self.scaler.update()
 
             # Accumulate detached scalar only — no graph retention
@@ -176,6 +192,10 @@ class Trainer:
             # Batch-level TensorBoard logging
             if self.writer is not None and (batch_idx + 1) % self.log_freq == 0:
                 self.writer.add_scalar("Train/BatchLoss", loss.item(), self.global_step)
+                
+            if self.writer is not None and self.global_step % 200 == 0:
+                self.writer.add_scalar("Train/GradNorm", gnorm.item(), self.global_step)
+                self.writer.add_scalar("Train/AMP_Scale", self.scaler.get_scale(), self.global_step)
 
         avg_loss = total_loss / total_samples if total_samples > 0 else 0.0
         return avg_loss

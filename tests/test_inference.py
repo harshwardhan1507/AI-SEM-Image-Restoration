@@ -7,7 +7,7 @@ Verifies:
 - 2D Gaussian spatial blending and weight normalization correctness (seamless blending verification).
 - Absence of non-finite values (NaN / Inf).
 - Deterministic CPU execution.
-- CLI script execution interface (scripts/predict.py).
+- CLI script execution interface (scripts/evaluate.py).
 """
 
 from __future__ import annotations
@@ -233,7 +233,7 @@ def test_deterministic_cpu_execution() -> None:
 
 
 def test_predict_cli_single_file_and_directory(tmp_path: Path) -> None:
-    """Integration test verifying scripts/predict.py for single files and directories."""
+    """Integration test verifying scripts/evaluate.py for single files and directories."""
     # 1. Create a dummy checkpoint
     ckpt_dir = tmp_path / "checkpoints"
     manager = CheckpointManager(checkpoint_dir=ckpt_dir)

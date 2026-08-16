@@ -1,0 +1,53 @@
+# Experiment 007 Configuration: Scaled NAFNet Width 48 SEM Image Restoration - Synthetic Augmentation
+experiment_id: "exp008_augmentation"
+description: "Scaled NAFNet with width=48 on SEM dataset for 50 epochs testing uncalibrated wide Gaussian injection."
+
+system:
+  seed: 42
+  device: "auto"
+  log_dir: "logs/exp008_augmentation_wide"
+  checkpoint_dir: "outputs/checkpoints/exp008_augmentation_wide"
+  tensorboard_dir: "outputs/tensorboard/exp008_augmentation_wide"
+
+data:
+  dataset_dir: "./dataset"
+  splits: ["train", "val"]
+  train_batch_size: 4
+  val_batch_size: 4
+  num_workers: 4
+  pin_memory: true
+  augmentations:
+    synthetic_degradation:
+      probability: 0.5
+      blur_prob: 0.15
+      speckle_prob: 1.0
+      poisson_prob: 0.0
+      gaussian_prob: 0.5
+      speckle_sigma_range: [0.0455, 0.2405]
+      poisson_scale_range: [100.0, 250.0]
+      gaussian_sigma_range: [0.0, 0.05]
+
+model:
+  name: "NAFNet"
+  img_channel: 1
+  width: 48
+  middle_blk_num: 1
+  enc_blk_nums: [1, 1, 1]
+  dec_blk_nums: [1, 1, 1]
+  upscale: 2
+  drop_out_rate: 0.0
+
+loss:
+  name: "charbonnier"
+  eps: 1.0e-3
+  reduction: "mean"
+
+train:
+  epochs: 50
+  batch_size: 4
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  min_lr: 1.0e-6
+  mixed_precision: false
+  val_freq: 1
+  log_freq: 10

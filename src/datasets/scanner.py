@@ -103,17 +103,33 @@ class DatasetScanner:
                 split_dir = self.root_dir / "train" / "train"
             elif split == "test" and (self.root_dir / "Test_NoisyLR").exists():
                 split_dir = self.root_dir / "Test_NoisyLR"
+            elif split in ["val", "val_ood"]:
+                pass # Handled below
             else:
                 raise FileNotFoundError(f"Split directory does not exist: {split_dir}")
         elif split == "train" and (split_dir / "train").exists():
             split_dir = split_dir / "train"
 
-        if split == "train":
+        if split in ["train", "val", "val_ood"]:
+            # If "val" was requested but doesn't exist as a separate folder, fallback to scanning train dir
+            is_val_split = (split == "val")
+            if is_val_split and not split_dir.exists():
+                split_dir = self.root_dir / "train" / "train" if (self.root_dir / "train" / "train").exists() else self.root_dir / "train"
+                
             gt_dir = split_dir / "GT"
             noisy_dir = split_dir / "NoisyLR"
 
             gt_files = self._get_valid_files(gt_dir)
             noisy_files = self._get_valid_files(noisy_dir)
+            
+            # Apply frozen JSON splits if they exist
+            split_file = self.root_dir / f"{'val' if is_val_split else 'train'}_split.json"
+            if split_file.exists():
+                import json
+                with open(split_file, "r") as f:
+                    allowed_files = set(json.load(f))
+                gt_files = [f for f in gt_files if f.name in allowed_files]
+                noisy_files = [f for f in noisy_files if f.name in allowed_files]
 
             if len(gt_files) != len(noisy_files):
                 raise ValueError(

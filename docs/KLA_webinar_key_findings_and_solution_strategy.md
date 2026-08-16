@@ -381,7 +381,7 @@ KLA expects the final submission to provide an inference script that:
 Recommended interface:
 
 ```bash
-python scripts/predict.py     --input_dir <input_directory>     --output_dir <output_directory>
+python scripts/evaluate.py     --input_dir <input_directory>     --output_dir <output_directory>
 ```
 
 Pipeline:

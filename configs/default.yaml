@@ -7,7 +7,7 @@
 # device: "cuda" # "cuda" or "cpu"
 
 # Directory Paths
-# dataset_dir: "./datasets"
+# dataset_dir: "./dataset"
 # output_dir: "./outputs"
 # checkpoint_dir: "./outputs/checkpoints"
 # log_dir: "./logs"

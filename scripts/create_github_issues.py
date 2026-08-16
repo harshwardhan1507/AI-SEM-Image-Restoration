@@ -281,7 +281,7 @@ Divide large input images into overlapping patches, run NAFNet forward inference
 
 ### Deliverables
 - `src/engine/inference.py`
-- `scripts/predict.py`
+- `scripts/evaluate.py`
 
 ### Acceptance Criteria
 - Restores full-resolution micrographs without spatial boundary seam artifacts.

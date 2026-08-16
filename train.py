@@ -67,6 +67,12 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=None,
         help="Path to model checkpoint .pth file to resume training from.",
     )
+    parser.add_argument(
+        "--finetune",
+        type=str,
+        default=None,
+        help="Path to model checkpoint .pth file to finetune from (loads weights only).",
+    )
     return parser.parse_args(args)
 
 
@@ -80,7 +86,11 @@ def resolve_device(device_setting: str) -> str:
         str: Resolved device string ('cuda' or 'cpu').
     """
     if device_setting.lower() == "auto":
-        return "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            return "cuda"
+        if torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
     return device_setting
 
 
@@ -144,6 +154,11 @@ def main(args: Optional[argparse.Namespace] = None) -> Dict[str, Any]:
         if not resume_path.exists():
             raise FileNotFoundError(f"Resume checkpoint file not found: {resume_path}")
 
+    if args.finetune:
+        finetune_path = Path(args.finetune).resolve()
+        if not finetune_path.exists():
+            raise FileNotFoundError(f"Finetune checkpoint file not found: {finetune_path}")
+
     # 2. Load configuration using existing Config infrastructure
     config = load_config(config_path=args.config, experiment_path=args.experiment)
 
@@ -183,6 +198,7 @@ def main(args: Optional[argparse.Namespace] = None) -> Dict[str, Any]:
 
     # 7. Build NAFNet Model
     model = build_model(config)
+    model = model.to(device_str)
     logger.info(f"Built model: {type(model).__name__}")
 
     # 8. Build Loss Function
@@ -226,7 +242,7 @@ def main(args: Optional[argparse.Namespace] = None) -> Dict[str, Any]:
     )
     writer = SummaryWriter(log_dir=tensorboard_dir)
 
-    # 12. Handle --resume
+    # 12. Handle --resume or --finetune
     start_epoch = 1
     if args.resume:
         checkpoint_path = Path(args.resume).resolve()
@@ -238,8 +254,21 @@ def main(args: Optional[argparse.Namespace] = None) -> Dict[str, Any]:
             scheduler=scheduler,
             map_location=device_str,
         )
-        start_epoch = int(checkpoint["epoch"]) + 1
-        logger.info(f"Resuming training starting at epoch {start_epoch}")
+        if checkpoint and "epoch" in checkpoint:
+            start_epoch = checkpoint["epoch"] + 1
+            logger.info(f"Resuming training starting at epoch {start_epoch}")
+    elif args.finetune:
+        finetune_path = Path(args.finetune).resolve()
+        logger.info(f"Loading finetune weights from {finetune_path}")
+        # Only load the model weights, leave optimizer/scheduler fresh
+        checkpoint_manager.load(
+            checkpoint_path=finetune_path,
+            model=model,
+            optimizer=None,
+            scheduler=None,
+            map_location=device_str,
+        )
+        logger.info(f"Successfully loaded finetune weights.")
 
     # 13. Construct ExperimentTracker & Trainer
     metrics_config = _get_config_val(

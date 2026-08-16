@@ -1,0 +1,56 @@
+# Experiment 010 Configuration: Composite Loss (Charbonnier + SSIM + FFT-L1)
+experiment_id: "exp011_finetune_ssim"
+description: "Width 48 NAFNet with Poisson + Gamma augmentation trained on Composite Loss."
+
+system:
+  seed: 42
+  device: "auto"
+  log_dir: "logs/exp011_finetune_ssim"
+  checkpoint_dir: "outputs/checkpoints/exp011_finetune_ssim"
+  tensorboard_dir: "outputs/tensorboard/exp011_finetune_ssim"
+
+data:
+  dataset_dir: "./dataset"
+  splits: ["train", "val"]
+  train_batch_size: 4
+  val_batch_size: 4
+  num_workers: 4
+  pin_memory: true
+  augmentations:
+    synthetic_degradation:
+      probability: 0.5
+      blur_prob: 0.15
+      speckle_prob: 1.0
+      poisson_prob: 1.0
+      gaussian_prob: 0.0
+      speckle_sigma_range: [0.040, 0.231]
+      poisson_scale_range: [110.0, 180.0]
+      gaussian_sigma_range: [0.0, 0.0183]
+
+model:
+  name: "NAFNet"
+  img_channel: 1
+  width: 48
+  middle_blk_num: 1
+  enc_blk_nums: [1, 1, 1]
+  dec_blk_nums: [1, 1, 1]
+  upscale: 2
+  drop_out_rate: 0.0
+
+loss:
+  name: "composite"
+  eps: 1.0e-3
+  charbonnier_weight: 1.0
+  ssim_weight: 0.2
+  fft_weight: 0.05
+  reduction: "mean"
+
+train:
+  epochs: 50
+  batch_size: 4
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  min_lr: 1.0e-6
+  mixed_precision: true
+  val_freq: 1
+  log_freq: 10

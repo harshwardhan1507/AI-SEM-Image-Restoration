@@ -42,7 +42,7 @@ In modern semiconductor manufacturing (e.g., 3nm/2nm node fabrication), **Critic
 This repository provides an end-to-end, modular PyTorch implementation of **NAFNet (Nonlinear Activation Free Network)**, engineered specifically to restore severely degraded low-dose SEM micrographs with **sub-nanometer edge preservation** and **sub-linear computational footprint**.
 
 > [!IMPORTANT]
-> **KLA / Semicon India Hackathon Benchmark Target:** Our NAFNet pipeline achieves a **+7.12 dB PSNR gain** (up from 22.91 dB noisy raw input to **30.03 dB PSNR** and **0.8013 SSIM**), solving simultaneous additive Gaussian noise, multiplicative speckle noise, and $2\times$ spatial resolution downsampling.
+> **KLA / Semicon India Hackathon Benchmark Target:** Our NAFNet pipeline achieves significant PSNR gains (currently retraining on rigorous held-out test splits to confirm final generalisation performance), solving simultaneous additive Gaussian noise, multiplicative speckle noise, and $2\times$ spatial resolution downsampling.
 
 ---
 
@@ -100,7 +100,7 @@ The codebase follows a modular, layered architecture enforcing strict separation
 
 *Figure 2 — Layered software architecture and package boundaries.*
 
-- **Layer 1 (Interface):** User-facing CLI entry points (`scripts/predict.py`, `train.py`), YAML configurations, and experiment tracking logs.
+- **Layer 1 (Interface):** User-facing CLI entry points (`scripts/evaluate.py`, `train.py`), YAML configurations, and experiment tracking logs.
 - **Layer 2 (Core Engine):** PyTorch execution engine (`src/engine/trainer.py`, `inference.py`, `evaluator.py`, `checkpoint.py`) with automatic mixed precision (AMP) and metric calculation.
 - **Layer 3 (Model):** Activation-free NAFNet architecture (`src/models/nafnet.py`, `nafblock.py`) and differentiable loss functions (`src/losses/charbonnier.py`, `psnr_loss.py`).
 - **Layer 4 (Data):** Dataset scanners, memory-mapped loaders (`src/datasets/sem_dataset.py`), validation filters, and Albumentations paired transforms.
@@ -197,21 +197,20 @@ Training employs a supervised regression loop driven by differentiable Charbonni
 
 ---
 
-## Empirical Capacity Scaling Benchmarks (Width 32 vs 48 vs 64)
+## Final Evaluation Metrics & Two-Phase Training Protocol
 
-To evaluate the quality-vs-capacity curve under controlled conditions (Issue #38), three experiments were executed on Tesla T4 GPUs using identical training hyperparameters (Charbonnier Loss $\epsilon=10^{-3}$, AdamW, Cosine Annealing 50 epochs, seed 42):
+Through extensive capacity scaling experiments, we identified that **NAFNet Width 48** provides the optimal pareto frontier between super-resolution quality and inference throughput on Tesla T4 hardware. 
 
-### Experiment Matrix & Diminishing Returns Analysis
+Our final training protocol involved a two-phase optimization strategy to balance absolute structural metric accuracy (PSNR) with perceptual high-frequency sharpness:
 
-| Experiment ID | Base Width | Parameters | Raw Noisy PSNR | Best Validation PSNR | Best SSIM | PSNR Gain vs Raw | $\Delta$ PSNR vs Prev | $\Delta$ SSIM vs Prev |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Raw Noisy Input** | - | - | 22.9069 dB | - | - | - | - | - |
-| **exp001 (Baseline)** | **32** | **1,129,028** | 22.9069 dB | **29.4118 dB** | **0.7891** | +6.5049 dB | — | — |
-| **exp002 (Scaled-48)** | **48** | **2,521,444** | 22.9069 dB | **29.9887 dB** | **0.8004** | +7.0818 dB | **+0.5769 dB** | **+0.0113** |
-| **exp003 (Scaled-64)** | **64** | **4,465,796** | 22.9069 dB | **30.0312 dB** | **0.8013** | +7.1243 dB | **+0.0425 dB** | **+0.0009** |
+| Experiment Phase | Objective Loss | Augmentation Pipeline | Best Validation PSNR | Best Validation SSIM | Perceptual Sharpness |
+| :--- | :--- | :--- | :---: | :---: | :---: |
+| **Raw Noisy Input** | - | - | 22.91 dB | 0.412 | Poor |
+| **exp009 (Baseline L1)** | Charbonnier (L1) | Poisson + Gamma | **29.15 dB** | **0.864** | Moderate (Over-smoothed) |
+| **exp011 (Finetuned)** | L1 + SSIM + FFT | Poisson + Gamma | 28.53 dB | 0.860 | Moderate (No noticeable visual divergence) |
 
-> [!NOTE]
-> **Key Finding:** Scaling width from 32 to 48 delivers a strong **+0.5769 dB** quality boost for a $2.23\times$ parameter increase. However, scaling further from 48 to 64 yields a marginal **+0.0425 dB** gain despite a $1.77\times$ parameter expansion, confirming **Width 48 as the optimal knee of the curve** for practical fab deployment.
+> [!NOTE]  
+> **Honest Scientific Finding on Perceptual Loss:** We hypothesized that finetuning the model with a Composite Loss (SSIM + FFT) would restore the missing stochastic nanoscale grain (fixing L1's over-smoothing bias). However, empirical evaluation over the test sets showed **no noticeable visual divergence** from the L1 baseline within the restricted finetuning window. This strongly suggests that the NAFNet bottleneck width of 48 heavily biases the network toward low-frequency structural representations, and L1 is already extracting the maximum possible structural capacity from this architecture constraint. Future perceptual improvements likely require GAN-based adversarial loss.
 
 ---
 
@@ -296,24 +295,23 @@ python scripts/verify_params.py
 python scripts/analyze_dataset.py --dataset-dir datasets/
 ```
 
-### 4. Run Training (Baseline vs. Width-48 vs. Width-64)
+### 4. Run Training (Physics-Calibrated Master Model)
 
 ```bash
-# Baseline Width-32
-python train.py --config configs/train.yaml
+# Phase 1: Train baseline with mathematically calibrated Poisson shot noise and Gamma speckle:
+python train.py --config configs/experiments/exp009_augmentation_poisson.yaml
 
-# Preferred Capacity Width-48
-python train.py --config configs/train.yaml --experiment configs/experiments/exp002_nafnet_width48.yaml
-
-# Maximum Capacity Width-64
-python train.py --config configs/train.yaml --experiment configs/experiments/exp003_nafnet_width64.yaml
+# Phase 2: Finetune with Composite Loss (SSIM + FFT) to encourage structural sharpness
+python train.py \
+  --config configs/experiments/exp011_finetune_ssim.yaml \
+  --finetune outputs/checkpoints/exp009_augmentation_poisson/best_model.pth
 ```
 
-### 5. Sliding-Window Overlap Inference
+### 5. Sliding-Window Overlap Inference (Unpaired Data)
 
 ```bash
-python scripts/predict.py \
-  --checkpoint experiments/checkpoints/best_model.pth \
+python scripts/evaluate.py \
+  --checkpoint outputs/checkpoints/exp009_augmentation_poisson/best_model.pth \
   --input datasets/test/degraded/ \
   --output results/predictions/ \
   --tile-size 256 \
@@ -322,11 +320,25 @@ python scripts/predict.py \
 
 ### 6. Qualitative Evaluation Grid Generation
 
+Generate publication-grade 5-column qualitative comparison grids for the validation sets:
+
 ```bash
+# Evaluate on In-Distribution split
 python scripts/evaluate_qualitative.py \
-  --dataset-dir datasets/ \
-  --split test \
-  --baseline-checkpoint experiments/checkpoints/best_model.pth \
+  --dataset-dir dataset/ \
+  --split val \
+  --baseline-checkpoint outputs/checkpoints/exp009_augmentation_poisson/best_model.pth \
+  --improved-checkpoint outputs/checkpoints/exp011_finetune_ssim/checkpoint_epoch_050.pth \
+  --include-bicubic-ref \
+  --num-samples 6
+
+# Evaluate on Out-of-Distribution (Procedural Geometry) split
+python scripts/evaluate_qualitative.py \
+  --dataset-dir dataset/ \
+  --split val_ood \
+  --baseline-checkpoint outputs/checkpoints/exp009_augmentation_poisson/best_model.pth \
+  --improved-checkpoint outputs/checkpoints/exp011_finetune_ssim/checkpoint_epoch_050.pth \
+  --include-bicubic-ref \
   --num-samples 6
 ```
 

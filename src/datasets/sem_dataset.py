@@ -57,11 +57,12 @@ class SEMDataset(Dataset):
         """
         return len(self.pairs)
 
-    def _process_array(self, file_path: Path) -> torch.Tensor:
-        """Load, clip, and format a single .npy file into a PyTorch tensor.
+    def _process_array(self, file_path: Path, clip: bool = False) -> torch.Tensor:
+        """Load, optionally clip, and format a single .npy file into a PyTorch tensor.
 
         Args:
             file_path: Path to `.npy` array file.
+            clip: Whether to apply the clip_range to this array.
 
         Returns:
             torch.Tensor: Formatted tensor of shape `(1, H, W)` and dtype `float32`.
@@ -69,7 +70,7 @@ class SEMDataset(Dataset):
         arr_mmap = np.load(file_path, mmap_mode="r")
         arr = np.array(arr_mmap, dtype=np.float32)
 
-        if self.clip_range is not None:
+        if clip and self.clip_range is not None:
             arr = np.clip(arr, self.clip_range[0], self.clip_range[1])
 
         tensor = torch.from_numpy(arr)
@@ -94,14 +95,19 @@ class SEMDataset(Dataset):
                 - "filename": Sample ID string
         """
         pair: DatasetPair = self.pairs[index]
-        input_tensor = self._process_array(pair.input_path)
+        # Do not clip the input NoisyLR (it must be unclipped to retain true noise profile)
+        input_tensor = self._process_array(pair.input_path, clip=False)
 
         target_tensor: Optional[torch.Tensor] = None
         if pair.target_path is not None:
-            target_tensor = self._process_array(pair.target_path)
+            # GT target is clipped to exactly [0, 1] per forensics
+            target_tensor = self._process_array(pair.target_path, clip=True)
 
         if self.transform is not None:
-            input_tensor, target_tensor = self.transform(input_tensor, target_tensor)
+            # pass index for deterministic validation synthesis
+            input_tensor, target_tensor = self.transform(
+                input_tensor, target_tensor, sample_index=index
+            )
 
         return {
             "input": input_tensor,
