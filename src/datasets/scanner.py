@@ -103,14 +103,14 @@ class DatasetScanner:
                 split_dir = self.root_dir / "train" / "train"
             elif split == "test" and (self.root_dir / "Test_NoisyLR").exists():
                 split_dir = self.root_dir / "Test_NoisyLR"
-            elif split == "val":
+            elif split in ["val", "val_ood"]:
                 pass # Handled below
             else:
                 raise FileNotFoundError(f"Split directory does not exist: {split_dir}")
         elif split == "train" and (split_dir / "train").exists():
             split_dir = split_dir / "train"
 
-        if split == "train" or split == "val":
+        if split in ["train", "val", "val_ood"]:
             # If "val" was requested but doesn't exist as a separate folder, fallback to scanning train dir
             is_val_split = (split == "val")
             if is_val_split and not split_dir.exists():
