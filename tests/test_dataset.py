@@ -214,7 +214,7 @@ class TestValueHandling:
     """Tests for pixel intensity range and dynamic clipping behavior."""
 
     def test_default_clipping_bounds(self, tmp_path: Path) -> None:
-        """Synthetic out-of-bound values (-0.5, +1.8) are clipped strictly to [0.0, 1.0]."""
+        """NoisyLR input preserves raw unclipped values while GT target is clipped to [0.0, 1.0]."""
         dataset_root = tmp_path / "clip_data"
         gt_dir = dataset_root / "train" / "GT"
         noisy_dir = dataset_root / "train" / "NoisyLR"
@@ -224,7 +224,8 @@ class TestValueHandling:
         raw_noisy = np.array([[-0.5, 0.5], [1.8, 0.2]], dtype=np.float32)
         raw_noisy = np.pad(raw_noisy, ((0, 126), (0, 126)), mode="constant")
 
-        raw_gt = np.zeros((256, 256), dtype=np.float32)
+        raw_gt = np.array([[-0.2, 0.7], [1.5, 0.3]], dtype=np.float32)
+        raw_gt = np.pad(raw_gt, ((0, 254), (0, 254)), mode="constant")
 
         np.save(noisy_dir / "sample_clip.npy", raw_noisy)
         np.save(gt_dir / "sample_clip.npy", raw_gt)
@@ -233,12 +234,21 @@ class TestValueHandling:
         sample = dataset[0]
 
         inp = sample["input"]
+        target = sample["target"]
         assert isinstance(inp, torch.Tensor)
-        assert torch.min(inp).item() >= 0.0
-        assert torch.max(inp).item() <= 1.0
-        assert inp[0, 0, 0].item() == 0.0  # Clipped from -0.5
-        assert inp[0, 0, 1].item() == 0.5  # Preserved
-        assert inp[0, 1, 0].item() == 1.0  # Clipped from 1.8
+        assert isinstance(target, torch.Tensor)
+
+        # NoisyLR input is unclipped to retain real physical noise distribution
+        assert pytest.approx(inp[0, 0, 0].item(), abs=1e-5) == -0.5  # Unclipped
+        assert pytest.approx(inp[0, 0, 1].item(), abs=1e-5) == 0.5   # Preserved
+        assert pytest.approx(inp[0, 1, 0].item(), abs=1e-5) == 1.8   # Unclipped
+
+        # Ground Truth target is clipped strictly to [0.0, 1.0]
+        assert torch.min(target).item() >= 0.0
+        assert torch.max(target).item() <= 1.0
+        assert pytest.approx(target[0, 0, 0].item(), abs=1e-5) == 0.0  # Clipped from -0.2
+        assert pytest.approx(target[0, 0, 1].item(), abs=1e-5) == 0.7  # Preserved
+        assert pytest.approx(target[0, 1, 0].item(), abs=1e-5) == 1.0  # Clipped from 1.5
 
     def test_none_clipping_preserves_raw_values(self, tmp_path: Path) -> None:
         """When clip_range is None, raw negative and high values are preserved."""

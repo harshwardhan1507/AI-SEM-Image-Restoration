@@ -158,7 +158,12 @@ def run_verification(dataset_dir: str, poisson_prob: float, sigma_min: float, si
     return True
 
 if __name__ == "__main__":
-    dataset_path = "/Users/krishna/cooks/AI-SEM-Image-Restoration/dataset/train/GT"
+    default_path = (
+        Path("dataset/train/GT")
+        if Path("dataset/train/GT").exists()
+        else (Path("datasets/train/GT") if Path("datasets/train/GT").exists() else Path("dataset/train/train/GT"))
+    )
+    dataset_path = sys.argv[1] if len(sys.argv) > 1 else str(default_path)
     
     print("=======================================")
     print("Sweeping sigma_max for EXP009")

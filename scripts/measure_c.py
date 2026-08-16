@@ -120,5 +120,10 @@ def measure_per_image(dataset_dir: str):
             print(f"mu ~ {bins[i-1]:.2f}: mean(std/mu) = {np.mean(std_global[mask]):.5f}")
 
 if __name__ == "__main__":
-    dataset_dir = sys.argv[1] if len(sys.argv) > 1 else "/Users/krishna/cooks/AI-SEM-Image-Restoration/dataset/train"
+    default_dir = (
+        Path("dataset/train")
+        if Path("dataset/train").exists()
+        else (Path("datasets/train") if Path("datasets/train").exists() else Path("dataset/train/train"))
+    )
+    dataset_dir = sys.argv[1] if len(sys.argv) > 1 else str(default_dir)
     measure_per_image(dataset_dir)

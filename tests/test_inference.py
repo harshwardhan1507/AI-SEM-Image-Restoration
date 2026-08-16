@@ -19,8 +19,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from scripts.predict import main as predict_main
-from scripts.predict import parse_args
+from scripts.evaluate import main as evaluate_main
+from scripts.evaluate import parse_args
 from src.engine.checkpoint import CheckpointManager
 from src.engine.inference import (
     SlidingWindowInference,
@@ -268,7 +268,7 @@ def test_predict_cli_single_file_and_directory(tmp_path: Path) -> None:
         "cpu",
     ]
     parsed = parse_args(args_single)
-    predict_main(parsed)
+    evaluate_main(parsed)
 
     assert single_output.exists()
     arr_single = np.load(single_output)
@@ -298,7 +298,7 @@ def test_predict_cli_single_file_and_directory(tmp_path: Path) -> None:
         "cpu",
     ]
     parsed_dir = parse_args(args_dir)
-    predict_main(parsed_dir)
+    evaluate_main(parsed_dir)
 
     assert (out_dir / "001.npy").exists()
     assert (out_dir / "002.npy").exists()

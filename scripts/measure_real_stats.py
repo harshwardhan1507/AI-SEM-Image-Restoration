@@ -132,5 +132,10 @@ def measure_real_stats(dataset_dir: str):
     print(f"Pooled p99.9 excess: {p999_pooled_excess:.5f}")
 
 if __name__ == "__main__":
-    dataset_dir = sys.argv[1] if len(sys.argv) > 1 else "/Users/krishna/cooks/AI-SEM-Image-Restoration/dataset/train"
+    default_dir = (
+        Path("dataset/train")
+        if Path("dataset/train").exists()
+        else (Path("datasets/train") if Path("datasets/train").exists() else Path("dataset/train/train"))
+    )
+    dataset_dir = sys.argv[1] if len(sys.argv) > 1 else str(default_dir)
     measure_real_stats(dataset_dir)

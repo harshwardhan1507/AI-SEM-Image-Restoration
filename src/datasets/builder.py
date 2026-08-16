@@ -361,7 +361,9 @@ def build_dataloaders(
             pass # scanner.py will handle "val" dynamically with val_split.json
 
         # Parse augmentation configurations
-        aug_cfg = _extract_config_value(cfg_dict, ["augmentations"], default={})
+        aug_cfg = _extract_config_value(
+            cfg_dict, ["data.augmentations", "augmentations"], default={}
+        )
         synth_cfg = aug_cfg.get("synthetic_degradation", {})
         synth_prob = synth_cfg.get("probability", 0.0)
         

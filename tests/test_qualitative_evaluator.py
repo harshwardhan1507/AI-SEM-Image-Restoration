@@ -11,15 +11,14 @@ from src.utils.qualitative_evaluator import QualitativeEvaluator
 
 
 def test_fixed_intensity_normalization() -> None:
-    """Test fixed [0.0, 1.0] intensity clipping without dynamic percentile scaling."""
+    """Test that normalize_fixed preserves raw unclipped intensity without artificial clipping."""
     raw_arr = np.array([[-0.5, 0.5], [1.5, 0.8]], dtype=np.float32)
     norm_arr = QualitativeEvaluator.normalize_fixed(raw_arr)
 
-    assert norm_arr.min() == 0.0
-    assert norm_arr.max() == 1.0
-    assert norm_arr[0, 0] == 0.0
+    assert np.array_equal(norm_arr, raw_arr)
+    assert norm_arr[0, 0] == -0.5
     assert norm_arr[0, 1] == 0.5
-    assert norm_arr[1, 0] == 1.0
+    assert norm_arr[1, 0] == 1.5
     assert norm_arr[1, 1] == 0.8
 
 

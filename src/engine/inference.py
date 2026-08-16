@@ -134,7 +134,7 @@ class SlidingWindowInference:
         self.upscale = getattr(model, "upscale", 1)
 
         # Calculate stride from tile_size and overlap
-        self.stride = max(1, int(math.floor(tile_size * (1.0 - overlap))))
+        self.stride = max(1, math.floor(tile_size * (1.0 - overlap)))
 
     def infer(
         self,
@@ -335,9 +335,24 @@ def slide_window_inference(
     if not force_tile:
         pad_h = (32 - h % 32) % 32
         pad_w = (32 - w % 32) % 32
-        padded_inp = F.pad(inp, (0, pad_w, 0, pad_h), mode="reflect")
-        
-        exec_device = device if device is not None else next(model.parameters()).device
+        if pad_h > 0 or pad_w > 0:
+            pad_mode = (
+                "reflect"
+                if (h > pad_h and w > pad_w and h >= 2 and w >= 2)
+                else "constant"
+            )
+            padded_inp = F.pad(inp, (0, pad_w, 0, pad_h), mode=pad_mode)
+        else:
+            padded_inp = inp
+
+        if device is not None:
+            exec_device = torch.device(device)
+        else:
+            try:
+                exec_device = next(model.parameters()).device
+            except StopIteration:
+                exec_device = torch.device("cpu")
+
         model.eval()
         model.to(exec_device)
         padded_inp = padded_inp.to(exec_device)
