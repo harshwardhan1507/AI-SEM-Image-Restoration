@@ -26,7 +26,7 @@ Implement a reusable, production-ready sliding-window inference pipeline for ful
 ### 3.2 `src/engine/__init__.py`
 - Re-exports `SlidingWindowInference` and `slide_window_inference` in the `src.engine` package namespace `__all__`.
 
-### 3.3 `scripts/predict.py`
+### 3.3 `scripts/evaluate.py`
 - Production CLI entry point supporting single `.npy` file and directory batch inference, checkpoint loading, device routing (`cuda`, `cpu`, `auto`), and raw `float32` output saving.
 
 ### 3.4 `tests/test_inference.py`
@@ -109,7 +109,7 @@ Gaussian weight maps and accumulation buffers are allocated directly in output c
 
 ## 9. CLI Interface
 
-The CLI script `scripts/predict.py` provides the following arguments:
+The CLI script `scripts/evaluate.py` provides the following arguments:
 
 | Argument | Type | Default | Description |
 |---|---|---|---|
@@ -148,7 +148,7 @@ The test suite in `tests/test_inference.py` contains 12 unit and integration tes
 9. `test_seamless_gaussian_blending_normalization`: Verifies constant field reconstruction across overlapping boundaries.
 10. `test_tile_batch_size_invariance`: Verifies output equality between `tile_batch_size=1` and `tile_batch_size=4`.
 11. `test_deterministic_cpu_execution`: Verifies bitwise output identity across multiple CPU runs.
-12. `test_predict_cli_single_file_and_directory`: Integration test for `scripts/predict.py` CLI file and directory execution.
+12. `test_predict_cli_single_file_and_directory`: Integration test for `scripts/evaluate.py` CLI file and directory execution.
 
 **Full Repository Test Suite Result**: `201 passed, 5 skipped`
 
@@ -178,7 +178,7 @@ Measured spatial step discontinuity across tile boundaries on a synthetic spatia
 *(Note: This represents the measured empirical result on test benchmarks, not a universal guarantee for all arbitrary images/models).*
 
 ### 12.3 Checkpoint Loading
-Verified that `scripts/predict.py` successfully loads a trained `best_model.pth` generated via `CheckpointManager`.
+Verified that `scripts/evaluate.py` successfully loads a trained `best_model.pth` generated via `CheckpointManager`.
 
 ### 12.4 Real SEM Image
 Verified inference on a full $1024 \times 1024$ SEM `.npy` array input producing a clean $2048 \times 2048$ output array.
@@ -218,7 +218,7 @@ Verified directory processing with input files `000000.npy`, `000001.npy`, `wafe
 
 ### Single File Inference
 ```bash
-python scripts/predict.py \
+python scripts/evaluate.py \
   --checkpoint outputs/checkpoints/best_model.pth \
   --input data/sample.npy \
   --output predictions/sample_restored.npy \
@@ -229,7 +229,7 @@ python scripts/predict.py \
 
 ### Directory Batch Inference
 ```bash
-python scripts/predict.py \
+python scripts/evaluate.py \
   --checkpoint outputs/checkpoints/best_model.pth \
   --input data/Test_NoisyLR \
   --output outputs/predictions \
@@ -248,7 +248,7 @@ python scripts/predict.py \
 
 ## 17. Limitations / What Was Not Measured
 
-- **Implemented**: `SlidingWindowInference`, `slide_window_inference`, `scripts/predict.py` CLI, Gaussian spatial blending, safe padding, tile mini-batching, shape contracts for `upscale=1` and `upscale=2`.
+- **Implemented**: `SlidingWindowInference`, `slide_window_inference`, `scripts/evaluate.py` CLI, Gaussian spatial blending, safe padding, tile mini-batching, shape contracts for `upscale=1` and `upscale=2`.
 - **Tested**: 12 dedicated unit/integration tests in `tests/test_inference.py` (201 passing repository tests).
 - **Empirically Measured**: Output spatial exactness, 43% boundary step reduction, `float32` range preservation, directory filename matching, 1.274s CPU latency on 1024×1024 image.
 - **Supported but Not Measured**: CUDA GPU latency, VRAM peak consumption, Kaggle/H100 throughput benchmarks.

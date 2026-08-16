@@ -410,10 +410,10 @@ Milestone 10: Documentation & Final Release
 * **Scope**: Divide large input images into overlapping patches, run NAFNet forward inference, and apply Gaussian spatial weighting to eliminate seam artifacts.
 * **Deliverables**:
   - `src/engine/inference.py`
-  - `scripts/predict.py`
+  - `scripts/evaluate.py`
 * **Acceptance Criteria**:
   - Restores full-resolution micrographs without spatial boundary seam artifacts.
-* **Files Modified**: `src/engine/inference.py`, `scripts/predict.py`
+* **Files Modified**: `src/engine/inference.py`, `scripts/evaluate.py`
 
 ---
 

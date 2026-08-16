@@ -26,10 +26,16 @@
 # Data Configuration
 # dataset_path:
 # patch_size:
-# augmentations:
-#   - name: "HorizontalFlip"
-#   - name: "VerticalFlip"
-#   - name: "RandomRotate90"
+augmentations:
+  synthetic_degradation:
+    probability: 0.5
+    blur_prob: 0.15
+    speckle_prob: 1.0
+    poisson_prob: 0.0
+    gaussian_prob: 0.0
+    speckle_sigma_range: [0.0455, 0.2405]
+    poisson_scale_range: [100.0, 250.0]
+    gaussian_sigma_range: [0.0, 0.0183]
 
 # Checkpoint Management
 # checkpoint_dir:

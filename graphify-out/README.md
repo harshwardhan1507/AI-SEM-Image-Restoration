@@ -81,7 +81,7 @@ graphify query "How does NAFBlock handle channel attention?"
 
 ### 2. Find Dependency Paths Between Components
 ```bash
-graphify path "scripts/predict.py" "src/models/nafnet.py"
+graphify path "scripts/evaluate.py" "src/models/nafnet.py"
 ```
 
 ### 3. Explain a Specific Concept / Class

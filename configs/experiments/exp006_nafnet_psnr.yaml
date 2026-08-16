@@ -10,7 +10,7 @@ system:
   tensorboard_dir: "outputs/tensorboard/exp006_nafnet_psnr"
 
 data:
-  dataset_dir: "./datasets"
+  dataset_dir: "./dataset"
   splits: ["train", "val"]
   train_batch_size: 4
   val_batch_size: 4

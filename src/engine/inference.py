@@ -248,7 +248,20 @@ class SlidingWindowInference:
                     ]
                     tiles_batch = torch.cat(tile_tensors, dim=0)
 
-                    pred_batch = self.model(tiles_batch)
+                    # Pad tiles_batch to multiple of 8 for NAFNet U-Net requirements
+                    _, _, t_h, t_w = tiles_batch.shape
+                    pad_h = (8 - t_h % 8) % 8
+                    pad_w = (8 - t_w % 8) % 8
+                    
+                    if pad_h > 0 or pad_w > 0:
+                        padded_tiles = F.pad(tiles_batch, (0, pad_w, 0, pad_h), mode="reflect")
+                        pred_batch_padded = self.model(padded_tiles)
+                        
+                        out_h = t_h * self.upscale
+                        out_w = t_w * self.upscale
+                        pred_batch = pred_batch_padded[:, :, :out_h, :out_w]
+                    else:
+                        pred_batch = self.model(tiles_batch)
 
                     # Validate model output spatial dimensions against expected contract
                     if pred_batch.shape[2:] != (tile_out_h, tile_out_w):

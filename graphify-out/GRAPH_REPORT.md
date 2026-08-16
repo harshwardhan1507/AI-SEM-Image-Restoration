@@ -41,7 +41,7 @@
 - evaluate_qualitative.py
 - get_transforms
 - .__init__
-- predict.py
+- evaluate.py
 - .load
 - setup_logger
 - TestSimpleGate
@@ -198,9 +198,9 @@ Nodes (14): get_transforms(), PairedTransforms, Paired spatial data augmentation
 Cohesion: 0.15
 Nodes (12): _get_config_value(), _normalize_dataset_path(), Any, Module, Optimizer, Path, Extract nested configuration value from Config instance., Update metrics record after a validation epoch and save record incrementally.… (+4 more)
 
-### Community 27 - "predict.py"
+### Community 27 - "evaluate.py"
 Cohesion: 0.17
-Nodes (14): main(), parse_args(), Namespace, CLI script for running patch-tiling sliding-window inference on SEM…, Resolve device setting to explicit 'cuda' or 'cpu' string., Main execution entry point for predict.py., Parse command line arguments for prediction CLI. Args: args: Optional list of…, resolve_device() (+6 more)
+Nodes (14): main(), parse_args(), Namespace, CLI script for running patch-tiling sliding-window inference on SEM…, Resolve device setting to explicit 'cuda' or 'cpu' string., Main execution entry point for evaluate.py., Parse command line arguments for prediction CLI. Args: args: Optional list of…, resolve_device() (+6 more)
 
 ### Community 28 - ".load"
 Cohesion: 0.17
@@ -266,9 +266,9 @@ Nodes (3): Test 8: BF16 autocast without GradScaler., BF16 on CPU: autocast may 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `NAFNet` connect `NAFNet` to `TestAMPAutocast`, `NAFBlock`, `IdentityModel`, `TestDeterminism`, `build_model`, `test_model.py`, `test_inference.py`, `tiny_model`, `evaluate_qualitative.py`, `predict.py`?**
+- **Why does `NAFNet` connect `NAFNet` to `TestAMPAutocast`, `NAFBlock`, `IdentityModel`, `TestDeterminism`, `build_model`, `test_model.py`, `test_inference.py`, `tiny_model`, `evaluate_qualitative.py`, `evaluate.py`?**
   _High betweenness centrality (0.230) - this node is a cross-community bridge._
-- **Why does `CheckpointManager` connect `CheckpointManager` to `IdentityModel`, `calculate_psnr`, `TestGradientClipping`, `main`, `TestAMPBF16`, `Config`, `test_checkpoint.py`, `_make_trainer`, `test_inference.py`, `slide_window_inference`, `predict.py`, `.load`, `.__init__`?**
+- **Why does `CheckpointManager` connect `CheckpointManager` to `IdentityModel`, `calculate_psnr`, `TestGradientClipping`, `main`, `TestAMPBF16`, `Config`, `test_checkpoint.py`, `_make_trainer`, `test_inference.py`, `slide_window_inference`, `evaluate.py`, `.load`, `.__init__`?**
   _High betweenness centrality (0.205) - this node is a cross-community bridge._
 - **Why does `Evaluator` connect `Evaluator` to `calculate_psnr`, `slide_window_inference`?**
   _High betweenness centrality (0.127) - this node is a cross-community bridge._

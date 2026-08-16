@@ -100,7 +100,7 @@ The codebase follows a modular, layered architecture enforcing strict separation
 
 *Figure 2 — Layered software architecture and package boundaries.*
 
-- **Layer 1 (Interface):** User-facing CLI entry points (`scripts/predict.py`, `train.py`), YAML configurations, and experiment tracking logs.
+- **Layer 1 (Interface):** User-facing CLI entry points (`scripts/evaluate.py`, `train.py`), YAML configurations, and experiment tracking logs.
 - **Layer 2 (Core Engine):** PyTorch execution engine (`src/engine/trainer.py`, `inference.py`, `evaluator.py`, `checkpoint.py`) with automatic mixed precision (AMP) and metric calculation.
 - **Layer 3 (Model):** Activation-free NAFNet architecture (`src/models/nafnet.py`, `nafblock.py`) and differentiable loss functions (`src/losses/charbonnier.py`, `psnr_loss.py`).
 - **Layer 4 (Data):** Dataset scanners, memory-mapped loaders (`src/datasets/sem_dataset.py`), validation filters, and Albumentations paired transforms.
@@ -312,7 +312,7 @@ python train.py --config configs/train.yaml --experiment configs/experiments/exp
 ### 5. Sliding-Window Overlap Inference
 
 ```bash
-python scripts/predict.py \
+python scripts/evaluate.py \
   --checkpoint experiments/checkpoints/best_model.pth \
   --input datasets/test/degraded/ \
   --output results/predictions/ \
