@@ -10,6 +10,7 @@ import torch.nn as nn
 
 from .charbonnier import CharbonnierLoss
 from .psnr_loss import PSNRLoss
+from .composite import CompositeLoss
 
 
 def build_loss(cfg: Any) -> nn.Module:
@@ -54,9 +55,20 @@ def build_loss(cfg: Any) -> nn.Module:
         return nn.L1Loss(reduction=reduction)
     elif loss_type_lower in ("mse", "mseloss"):
         return nn.MSELoss(reduction=reduction)
+    elif loss_type_lower == "composite":
+        charbonnier_weight = float(_get_param(loss_cfg, "charbonnier_weight", 1.0))
+        ssim_weight = float(_get_param(loss_cfg, "ssim_weight", 0.2))
+        fft_weight = float(_get_param(loss_cfg, "fft_weight", 0.05))
+        eps = float(_get_param(loss_cfg, "eps", 1e-3))
+        return CompositeLoss(
+            charbonnier_weight=charbonnier_weight,
+            ssim_weight=ssim_weight,
+            fft_weight=fft_weight,
+            eps=eps
+        )
     else:
         raise ValueError(
-            f"Unsupported loss type '{loss_type}'. Supported loss types are 'charbonnier', 'psnr', 'l1', and 'mse'."
+            f"Unsupported loss type '{loss_type}'. Supported loss types are 'charbonnier', 'psnr', 'l1', 'mse', and 'composite'."
         )
 
 
