@@ -120,8 +120,9 @@ class Trainer:
         )
         self.scaler = torch.amp.GradScaler(self.device_type, enabled=scaler_enabled)
 
-        # Move model to device
+        # Move model and criterion to device
         self.model = self.model.to(self.device)
+        self.criterion = self.criterion.to(self.device)
 
         # Global step counter for batch-level TensorBoard logging
         self.global_step = 0
