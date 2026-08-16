@@ -1,13 +1,13 @@
 # Experiment 010 Configuration: Composite Loss (Charbonnier + SSIM + FFT-L1)
-experiment_id: "exp010_composite_loss"
+experiment_id: "exp011_finetune_ssim"
 description: "Width 48 NAFNet with Poisson + Gamma augmentation trained on Composite Loss."
 
 system:
   seed: 42
   device: "auto"
-  log_dir: "logs/exp010_composite_loss"
-  checkpoint_dir: "outputs/checkpoints/exp010_composite_loss"
-  tensorboard_dir: "outputs/tensorboard/exp010_composite_loss"
+  log_dir: "logs/exp011_finetune_ssim"
+  checkpoint_dir: "outputs/checkpoints/exp011_finetune_ssim"
+  tensorboard_dir: "outputs/tensorboard/exp011_finetune_ssim"
 
 data:
   dataset_dir: "./dataset"
