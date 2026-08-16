@@ -52,7 +52,7 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         "--split",
         type=str,
         default="train",
-        choices=["train", "test"],
+        choices=["train", "val", "test"],
         help="Dataset split to evaluate ('train' or 'test').",
     )
     parser.add_argument(
