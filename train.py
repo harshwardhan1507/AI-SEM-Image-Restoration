@@ -183,6 +183,7 @@ def main(args: Optional[argparse.Namespace] = None) -> Dict[str, Any]:
 
     # 7. Build NAFNet Model
     model = build_model(config)
+    model = model.to(device_str)
     logger.info(f"Built model: {type(model).__name__}")
 
     # 8. Build Loss Function
