@@ -296,17 +296,14 @@ python scripts/verify_params.py
 python scripts/analyze_dataset.py --dataset-dir datasets/
 ```
 
-### 4. Run Training (Baseline vs. Width-48 vs. Width-64)
+### 4. Run Training (Physics-Calibrated Master Model)
 
 ```bash
-# Baseline Width-32
-python train.py --config configs/train.yaml
+# The final selected model with mathematically calibrated Poisson shot noise and Gamma speckle:
+python train.py --config configs/experiments/exp009_augmentation_poisson.yaml
 
-# Preferred Capacity Width-48
-python train.py --config configs/train.yaml --experiment configs/experiments/exp002_nafnet_width48.yaml
-
-# Maximum Capacity Width-64
-python train.py --config configs/train.yaml --experiment configs/experiments/exp003_nafnet_width64.yaml
+# To run the static un-augmented baseline (for ablation comparison):
+python train.py --config configs/experiments/exp002_nafnet_width48.yaml
 ```
 
 ### 5. Sliding-Window Overlap Inference
