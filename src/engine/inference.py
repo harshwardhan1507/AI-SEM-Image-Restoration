@@ -307,8 +307,12 @@ def slide_window_inference(
     tile_batch_size: int = 1,
     device: Optional[Union[str, torch.device]] = None,
     use_gaussian: bool = True,
+    force_tile: bool = False,
 ) -> torch.Tensor:
-    """Helper function to execute sliding-window tile inference.
+    """Helper function to execute inference, defaulting to a single full-pass to avoid tiling artifacts.
+
+    If the image is extremely large and OOMs are expected, set `force_tile=True` to 
+    fall back to the sliding-window tiled inference engine.
 
     Args:
         model: PyTorch model.
@@ -317,11 +321,38 @@ def slide_window_inference(
         overlap: Tile overlap ratio (default 0.25).
         tile_batch_size: Tile mini-batch size (default 1).
         device: Target device.
-        use_gaussian: Whether to apply 2D Gaussian spatial blending.
+        use_gaussian: Whether to apply 2D Gaussian spatial blending (if tiling).
+        force_tile: Force sliding window inference.
 
     Returns:
         Restored output tensor of shape (C, H*scale, W*scale) or (B, C, H*scale, W*scale).
     """
+    is_3d = x.dim() == 3
+    inp = x.unsqueeze(0) if is_3d else x
+    _, _, h, w = inp.shape
+
+    # Default to single padded forward pass to avoid border hallucination artifacts
+    if not force_tile:
+        pad_h = (32 - h % 32) % 32
+        pad_w = (32 - w % 32) % 32
+        padded_inp = F.pad(inp, (0, pad_w, 0, pad_h), mode="reflect")
+        
+        exec_device = device if device is not None else next(model.parameters()).device
+        model.eval()
+        model.to(exec_device)
+        padded_inp = padded_inp.to(exec_device)
+        
+        with torch.inference_mode():
+            out = model(padded_inp)
+            
+        upscale = getattr(model, "upscale", 1)
+        final_h = h * upscale
+        final_w = w * upscale
+        out = out[:, :, :final_h, :final_w]
+        
+        return out.squeeze(0) if is_3d else out
+
+    # Fallback to sliding window for massive OOM-prone images
     engine = SlidingWindowInference(
         model=model,
         tile_size=tile_size,

@@ -246,9 +246,7 @@ def process_single_file(
     arr_raw = np.load(input_path)
     arr = np.array(arr_raw, dtype=np.float32)
 
-    # Standard project preprocessing (clip to [0.0, 1.0])
-    arr = np.clip(arr, 0.0, 1.0)
-
+    # Removed: arr = np.clip(arr, 0.0, 1.0) to preserve >1.0 intensities
     tensor = torch.from_numpy(arr)
     if tensor.ndim == 2:
         tensor = tensor.unsqueeze(0)

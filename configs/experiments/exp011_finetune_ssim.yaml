@@ -1,13 +1,13 @@
-# Experiment 007 Configuration: Scaled NAFNet Width 48 SEM Image Restoration - Synthetic Augmentation
-experiment_id: "exp009_augmentation_poisson"
-description: "Scaled NAFNet with width=48 on SEM dataset for 50 epochs testing KLA-physics synthetic augmentation robustness."
+# Experiment 010 Configuration: Composite Loss (Charbonnier + SSIM + FFT-L1)
+experiment_id: "exp010_composite_loss"
+description: "Width 48 NAFNet with Poisson + Gamma augmentation trained on Composite Loss."
 
 system:
   seed: 42
   device: "auto"
-  log_dir: "logs/exp009_augmentation_poisson"
-  checkpoint_dir: "outputs/checkpoints/exp009_augmentation_poisson"
-  tensorboard_dir: "outputs/tensorboard/exp009_augmentation_poisson"
+  log_dir: "logs/exp010_composite_loss"
+  checkpoint_dir: "outputs/checkpoints/exp010_composite_loss"
+  tensorboard_dir: "outputs/tensorboard/exp010_composite_loss"
 
 data:
   dataset_dir: "./dataset"
@@ -38,12 +38,15 @@ model:
   drop_out_rate: 0.0
 
 loss:
-  name: "charbonnier"
+  name: "composite"
   eps: 1.0e-3
+  charbonnier_weight: 1.0
+  ssim_weight: 0.2
+  fft_weight: 0.05
   reduction: "mean"
 
 train:
-  epochs: 30
+  epochs: 50
   batch_size: 4
   learning_rate: 1.0e-3
   weight_decay: 1.0e-4

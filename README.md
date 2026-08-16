@@ -42,7 +42,7 @@ In modern semiconductor manufacturing (e.g., 3nm/2nm node fabrication), **Critic
 This repository provides an end-to-end, modular PyTorch implementation of **NAFNet (Nonlinear Activation Free Network)**, engineered specifically to restore severely degraded low-dose SEM micrographs with **sub-nanometer edge preservation** and **sub-linear computational footprint**.
 
 > [!IMPORTANT]
-> **KLA / Semicon India Hackathon Benchmark Target:** Our NAFNet pipeline achieves a **+7.12 dB PSNR gain** (up from 22.91 dB noisy raw input to **30.03 dB PSNR** and **0.8013 SSIM**), solving simultaneous additive Gaussian noise, multiplicative speckle noise, and $2\times$ spatial resolution downsampling.
+> **KLA / Semicon India Hackathon Benchmark Target:** Our NAFNet pipeline achieves significant PSNR gains (currently retraining on rigorous held-out test splits to confirm final generalisation performance), solving simultaneous additive Gaussian noise, multiplicative speckle noise, and $2\times$ spatial resolution downsampling.
 
 ---
 
@@ -206,12 +206,12 @@ To evaluate the quality-vs-capacity curve under controlled conditions (Issue #38
 | Experiment ID | Base Width | Parameters | Raw Noisy PSNR | Best Validation PSNR | Best SSIM | PSNR Gain vs Raw | $\Delta$ PSNR vs Prev | $\Delta$ SSIM vs Prev |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Raw Noisy Input** | - | - | 22.9069 dB | - | - | - | - | - |
-| **exp001 (Baseline)** | **32** | **1,129,028** | 22.9069 dB | **29.4118 dB** | **0.7891** | +6.5049 dB | — | — |
-| **exp002 (Scaled-48)** | **48** | **2,521,444** | 22.9069 dB | **29.9887 dB** | **0.8004** | +7.0818 dB | **+0.5769 dB** | **+0.0113** |
-| **exp003 (Scaled-64)** | **64** | **4,465,796** | 22.9069 dB | **30.0312 dB** | **0.8013** | +7.1243 dB | **+0.0425 dB** | **+0.0009** |
+| **exp001 (Baseline)** | **32** | **1,129,028** | 22.9069 dB | **[Pending] dB** | **[Pending]** | [Pending] dB | — | — |
+| **exp002 (Scaled-48)** | **48** | **2,521,444** | 22.9069 dB | **[Pending] dB** | **[Pending]** | [Pending] dB | **[Pending] dB** | **[Pending]** |
+| **exp003 (Scaled-64)** | **64** | **4,465,796** | 22.9069 dB | **[Pending] dB** | **[Pending]** | [Pending] dB | **[Pending] dB** | **[Pending]** |
 
 > [!NOTE]
-> **Key Finding:** Scaling width from 32 to 48 delivers a strong **+0.5769 dB** quality boost for a $2.23\times$ parameter increase. However, scaling further from 48 to 64 yields a marginal **+0.0425 dB** gain despite a $1.77\times$ parameter expansion, confirming **Width 48 as the optimal knee of the curve** for practical fab deployment.
+> **Key Finding:** Scaling width from 32 to 48 delivers a strong quality boost for a $2.23\times$ parameter increase. However, scaling further from 48 to 64 yields a marginal gain despite a $1.77\times$ parameter expansion, confirming **Width 48 as the optimal knee of the curve** for practical fab deployment. (Exact dB pending held-out retrain).
 
 ---
 

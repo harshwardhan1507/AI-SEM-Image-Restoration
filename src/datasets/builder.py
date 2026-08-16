@@ -358,7 +358,7 @@ def build_dataloaders(
     for split in target_splits:
         dataset_split = split
         if split == "val" and not (root_path / "val").exists():
-            dataset_split = "train"
+            pass # scanner.py will handle "val" dynamically with val_split.json
 
         # Parse augmentation configurations
         aug_cfg = _extract_config_value(cfg_dict, ["augmentations"], default={})
